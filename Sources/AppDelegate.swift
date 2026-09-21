@@ -31,9 +31,9 @@ class GameViewController: UIViewController, WKScriptMessageHandler {
         config.userContentController.add(self, name: "haptic")
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        webView = WKWebView(frame: view.bounds, configuration: config)
-        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        webView.scrollView.isScrollEnabled = false
+        webView = WKWebView(frame: .zero, configuration: config)
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        webView.scrollView.isScrollEnabled = true
         webView.scrollView.bounces = false
         webView.scrollView.minimumZoomScale = 1
         webView.scrollView.maximumZoomScale = 1
@@ -43,6 +43,13 @@ class GameViewController: UIViewController, WKScriptMessageHandler {
         webView.isOpaque = false
         webView.backgroundColor = view.backgroundColor
         view.addSubview(webView)
+        // Keep the game clear of the Dynamic Island / notch (left/right safe area in landscape).
+        NSLayoutConstraint.activate([
+            webView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
         if let url = Bundle.main.url(forResource: "game", withExtension: "html") {
             webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
         }

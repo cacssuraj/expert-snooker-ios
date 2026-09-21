@@ -60,6 +60,12 @@
   .brand h1{ font-weight:700; letter-spacing:0.14em; text-transform:uppercase; font-size:clamp(16px,3.4vw,22px); background:linear-gradient(90deg,var(--gold),var(--accent-pink)); -webkit-background-clip:text; background-clip:text; color:transparent; margin:4px 0 0; }
   .brand .tag{ font-style:italic; color:var(--muted); font-size:11px; margin-top:-2px; }
   body.in-game .brand{ display:none; }
+  @media (max-height:560px) and (orientation:landscape){
+    body:not(.in-game) .brand{ flex-direction:row; gap:10px; margin-top:0; }
+    body:not(.in-game) .brand .tag{ display:none; }
+    body:not(.in-game) .crest{ width:30px; height:30px; }
+    body:not(.in-game) .brand h1{ margin:0; font-size:16px; }
+  }
 
   .menu-card{ width:100%; max-width:420px; background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:20px 20px 22px; box-shadow:0 18px 40px rgba(0,0,0,0.35); display:flex; flex-direction:column; gap:12px; }
   .field-label{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
@@ -560,12 +566,14 @@
   <div class="overlay-card" style="max-width:460px; text-align:left;">
     <h2 style="text-align:center;">How to Play</h2>
     <div class="result-line" style="text-align:left; font-size:15px; line-height:1.6;">
-      1. Drag back from the cue ball (white) and release to strike — the further you drag, the more power.<br><br>
-      2. While reds remain: pot a red (1 pt), then any colour (2–7 pts), then a red again, alternating.<br><br>
-      3. Colours are re-spotted on their marks after being potted, until the reds run out.<br><br>
-      4. Once all reds are gone, colours must be potted in order: yellow, green, brown, blue, pink, black — and stay potted.<br><br>
-      5. A foul (wrong ball hit first, no ball hit, cue ball potted, or potting out of order) ends your break and gives the turn to your opponent.<br><br>
-      6. Highest score when the black is potted (or table is cleared) wins the frame.
+      1. <b>Aim:</b> drag your finger on the table — the cue swings around the white ball. Nothing fires yet.<br><br>
+      2. <b>Shoot:</b> press the power rail on the right and drag it down. Further down = more power. Let go to strike.<br><br>
+      3. While reds remain: pot a red (1 pt), then any colour (2–7 pts), then a red again, alternating.<br><br>
+      4. Colours are re-spotted after being potted, until the reds run out. Then colours go in order: yellow, green, brown, blue, pink, black.<br><br>
+      5. A foul (wrong ball first, no ball hit, cue ball potted, potting out of order) gives points to your opponent and ends your visit. After the cue ball is potted, place it in the D.<br><br>
+      6. <b>Power-ups</b> (left side, once per frame): 👁 Ghost Aim shows your shot path; ⚡ Power Surge boosts your next shot. Some cues give extra uses.<br><br>
+      7. Pot 3 times in one visit for a 🔥 Hot Streak coin bonus, and collect badges in Stats.<br><br>
+      8. In 1-Player mode you play the House (computer). Highest score when the table is cleared wins the frame.
     </div>
     <div class="legend" style="justify-content:flex-start; padding-top:6px; border-top:1px dashed var(--line);">
       <span><i style="background:#c0272d"></i>Red 1</span>
