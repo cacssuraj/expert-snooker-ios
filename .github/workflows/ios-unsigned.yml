@@ -4,6 +4,9 @@
 name: iOS unsigned IPA
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["Resources/**", "Sources/**", "project.yml"]
 permissions:
   contents: write
 jobs:
