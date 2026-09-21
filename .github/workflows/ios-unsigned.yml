@@ -1,9 +1,11 @@
-# Builds an UNSIGNED iOS .ipa on a GitHub Mac; sign it with Sideloadly/AltStore
-# using a free Apple ID to install on your own iPhone from Windows.
+# Builds an UNSIGNED iOS .ipa on a GitHub Mac, verifies it, and publishes it
+# as a Release asset. Sideloadly/AltStore re-sign it with a free Apple ID.
 # Trigger: GitHub repo -> Actions -> "iOS unsigned IPA" -> Run workflow.
 name: iOS unsigned IPA
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build-ios:
     runs-on: macos-15
@@ -25,6 +27,23 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/ExpertSnooker.app Payload/
           zip -qry ExpertSnooker_unsigned.ipa Payload
           ls -lh ExpertSnooker_unsigned.ipa
+      - name: Verify IPA contents
+        run: |
+          APP=Payload/ExpertSnooker.app
+          echo "== files =="; ls -la "$APP"
+          echo "== Info.plist =="; plutil -p "$APP/Info.plist"
+          echo "== binary arch =="; lipo -info "$APP/ExpertSnooker"; file "$APP/ExpertSnooker"
+          echo "== game.html =="; ls -l "$APP/game.html"; grep -c "maybeScheduleAI" "$APP/game.html"; grep -c "result-win" "$APP/game.html"
+          echo "== codesign (expected: unsigned) =="; codesign -dv "$APP" 2>&1 || true
+          test -f "$APP/game.html"
+          plutil -extract UISupportedInterfaceOrientations json -o - "$APP/Info.plist"
+      - name: Publish release with IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-${{ github.run_number }}" ExpertSnooker_unsigned.ipa \
+            --title "Expert Snooker build ${{ github.run_number }}" \
+            --notes "Unsigned IPA for Sideloadly/AltStore. Not yet tested on a physical iPhone." 
       - uses: actions/upload-artifact@v4
         with:
           name: ExpertSnooker_unsigned_ipa
