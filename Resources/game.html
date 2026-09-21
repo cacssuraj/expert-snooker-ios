@@ -195,6 +195,14 @@
   .sidebar .icon-btn{ background:transparent; box-shadow:none; border:1px solid transparent; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 2px; border-radius:8px; font-size:11px; text-transform:none; letter-spacing:0; font-weight:600; }
   .sidebar .icon-btn .ico{ font-size:18px; line-height:1; }
   .sidebar .icon-btn.active{ background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple)); color:#fff; }
+  .sidebar .icon-btn.pu-armed{ background:rgba(255,204,77,0.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,204,77,0.45); }
+  .sidebar .icon-btn.pu-used{ opacity:0.35; }
+  .badge-grid{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .badge{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center; opacity:0.45; }
+  .badge.earned{ opacity:1; border-color:var(--gold-dim); box-shadow:0 0 10px rgba(255,204,77,0.25); }
+  .badge .b-ico{ font-size:20px; line-height:1.1; }
+  .badge .b-name{ font-size:12px; font-weight:700; color:var(--gold); }
+  .badge .b-desc{ font-size:10px; color:var(--muted); }
 
   .table-wrap{ position:relative; width:100%; padding:20px; background: repeating-linear-gradient(100deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 2px, transparent 5px), linear-gradient(160deg, var(--wood-1), var(--wood-2) 55%, var(--wood-3)); border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(217,178,76,0.3), inset 0 2px 4px rgba(255,255,255,0.08), inset 0 0 40px rgba(0,0,0,0.65); }
   .rail{ position:relative; border-radius:8px; overflow:hidden; background:var(--felt-2); box-shadow: inset 0 0 40px rgba(0,0,0,0.6); }
@@ -427,6 +435,8 @@
         <div class="stat-tile"><div class="st-v" id="statPotted">0</div><div class="st-k">Balls Potted</div></div>
         <div class="stat-tile"><div class="st-v" id="statLevel">1</div><div class="st-k">Cueist Level</div></div>
       </div>
+      <div class="field-label" style="margin-top:6px;">Badges</div>
+      <div class="badge-grid" id="badgeGrid"></div>
       <div class="field-label" style="margin-top:6px;">Sound</div>
       <div class="seg" id="soundSeg">
         <button data-sound="on" class="active">On</button>
@@ -504,6 +514,8 @@
         <button class="icon-btn active" title="Play"><span class="ico">▶</span><span class="lbl">Play</span></button>
         <button class="icon-btn" id="restartSideBtn" title="Re-rack"><span class="ico">↻</span><span class="lbl">Re-rack</span></button>
         <button class="icon-btn" id="rulesSideBtn" title="Rules"><span class="ico">ℹ</span><span class="lbl">Rules</span></button>
+        <button class="icon-btn" id="puGhostBtn" title="Ghost Aim — reveals the shot path for your next shot"><span class="ico">👁</span><span class="lbl">Ghost</span></button>
+        <button class="icon-btn" id="puSurgeBtn" title="Power Surge — boosts your next shot"><span class="ico">⚡</span><span class="lbl">Surge</span></button>
       </div>
 
       <div class="table-col">
@@ -655,6 +667,7 @@
       owned: ['classic'], selected: 'classic', levels: { classic: 1 },
       tableOwned: ['classic'], tableSelected: 'classic',
       stats: { played: 0, won: 0, bestBreak: 0, potted: 0 },
+      badges: [], streakBest: 0,
       missionsClaimed: [],
       daily: { lastClaim: '', streak: 0 },
       settings: { sound: true }
@@ -671,6 +684,7 @@
           stats: Object.assign(d.stats, parsed.stats||{}),
           daily: Object.assign(d.daily, parsed.daily||{}),
           settings: Object.assign(d.settings, parsed.settings||{}),
+          badges: parsed.badges || d.badges,
           owned: parsed.owned || d.owned,
           tableOwned: parsed.tableOwned || d.tableOwned,
           missionsClaimed: parsed.missionsClaimed || d.missionsClaimed
@@ -691,9 +705,9 @@
 
   const CUE_SKINS = [
     { id:'classic', name:'Classic Ash', desc:'The house cue — always free', price:0, grain:['#e7c48d','#c99a5f','#a97a44'], joint:'#d9b24c', butt:['#3a2313','#1c1108'] },
-    { id:'ebony', name:'Ebony Noir', desc:'Dark stained shaft, silver rings', price:120, grain:['#4a4a4a','#2c2c2c','#161616'], joint:'#c9c9c9', butt:['#101010','#000000'] },
-    { id:'royal', name:'Royal Gold', desc:'Gilded shaft for a champion’s break', price:260, grain:['#f4e2a1','#d9b24c','#a4832f'], joint:'#f3ead4', butt:['#5a3a10','#2c1a06'] },
-    { id:'ocean', name:'Ocean Blue', desc:'Cool blue lacquer, brass fittings', price:180, grain:['#9fc9e8','#3f6fb0','#204a7a'], joint:'#d9b24c', butt:['#1a2333','#0c121c'] },
+    { id:'ebony', name:'Ebony Noir', desc:'Dark stained shaft · Perk: 2 Power Surges a frame', price:120, grain:['#4a4a4a','#2c2c2c','#161616'], joint:'#c9c9c9', butt:['#101010','#000000'] },
+    { id:'royal', name:'Royal Gold', desc:'Gilded shaft · Perk: a stronger Power Surge (×1.5)', price:260, grain:['#f4e2a1','#d9b24c','#a4832f'], joint:'#f3ead4', butt:['#5a3a10','#2c1a06'] },
+    { id:'ocean', name:'Ocean Blue', desc:'Cool blue lacquer · Perk: 2 Ghost Aims a frame', price:180, grain:['#9fc9e8','#3f6fb0','#204a7a'], joint:'#d9b24c', butt:['#1a2333','#0c121c'] },
   ];
   function currentCue(){ return CUE_SKINS.find(c=>c.id===save.selected) || CUE_SKINS[0]; }
   function cueLevel(id){ return save.levels[id] || 1; }
@@ -740,10 +754,152 @@
     gain.gain.exponentialRampToValueAtTime(0.001, ctxA.currentTime + dur);
     osc.stop(ctxA.currentTime + dur);
   }
-  function sfxShoot(){ playTone(180, 0.08, 'square', 0.08); }
-  function sfxPot(){ playTone(660, 0.12, 'sine', 0.14); setTimeout(()=>playTone(880,0.12,'sine',0.1),60); }
-  function sfxFoul(){ playTone(140, 0.28, 'sawtooth', 0.1); }
+  function noiseBurst(dur, gainAmt, freq){
+    const c = ensureAudio(); if(!c) return;
+    try{
+      const len = Math.max(1, Math.floor(c.sampleRate*dur));
+      const buf = c.createBuffer(1, len, c.sampleRate); const d = buf.getChannelData(0);
+      for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (1 - i/len);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 2000;
+      const g = c.createGain(); g.gain.value = gainAmt || 0.15;
+      src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+    }catch(e){}
+  }
+  // Haptics: iPhone goes through a native bridge (WKWebView has no vibrate API);
+  // Android uses the standard vibrate call.
+  function haptic(kind){
+    try{
+      if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptic){
+        window.webkit.messageHandlers.haptic.postMessage(kind);
+      } else if(navigator.vibrate){
+        navigator.vibrate(kind==='heavy' ? 40 : kind==='medium' ? 22 : kind==='success' ? [15,40,15] : kind==='error' ? [40,30,40] : 10);
+      }
+    }catch(e){}
+  }
+  let lastClickAt = 0, lastRailAt = 0;
+  function sfxShoot(){ noiseBurst(0.05, 0.22, 1800); playTone(110, 0.12, 'sine', 0.2); haptic('medium'); }
+  function sfxClick(v){
+    const now = performance.now(); if(now - lastClickAt < 40) return; lastClickAt = now;
+    playTone(1300 + Math.random()*350, 0.035, 'triangle', Math.min(0.16, 0.03 + v*0.02));
+  }
+  function sfxRail(v){
+    const now = performance.now(); if(now - lastRailAt < 60 || v < 0.8) return; lastRailAt = now;
+    playTone(85, 0.07, 'sine', Math.min(0.14, 0.03 + v*0.015));
+  }
+  function sfxPot(){ playTone(660, 0.12, 'sine', 0.14); setTimeout(()=>playTone(880,0.12,'sine',0.1),60); playTone(70, 0.16, 'sine', 0.18); haptic('light'); }
+  function sfxFoul(){ playTone(140, 0.28, 'sawtooth', 0.1); haptic('error'); }
   function sfxClaim(){ playTone(520,0.1,'sine',0.12); setTimeout(()=>playTone(780,0.14,'sine',0.12),90); setTimeout(()=>playTone(1040,0.16,'sine',0.1),180); }
+  function sfxStreak(n){ [520,660,880,1100].slice(0, Math.min(4, n)).forEach((f,i)=>setTimeout(()=>playTone(f,0.12,'triangle',0.13), i*70)); haptic('success'); }
+  function sfxWin(){ [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>playTone(f,0.22,'triangle',0.14), i*110)); haptic('success'); }
+  function sfxLose(){ [392,330,262].forEach((f,i)=>setTimeout(()=>playTone(f,0.28,'sine',0.12), i*180)); haptic('error'); }
+
+  // ---------------- VISUAL FX: pocket bursts, floating text, ball trails ----------------
+  const particles = [], floaters = [];
+  function burst(x, y, color, n){
+    for(let i=0;i<(n||20);i++){
+      const a = Math.random()*Math.PI*2, s = 1 + Math.random()*3.2;
+      particles.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:1, color });
+    }
+  }
+  function floater(x, y, text, color){ floaters.push({ x, y, text, color: color || '#ffcc4d', life:1 }); }
+  function drawFX(){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vx *= 0.95; p.vy *= 0.95; p.life -= 0.028;
+      if(p.life <= 0){ particles.splice(i,1); continue; }
+      ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.2*p.life + 0.6, 0, Math.PI*2); ctx.fill();
+    }
+    for(let i=floaters.length-1;i>=0;i--){
+      const f = floaters[i]; f.y -= 0.6; f.life -= 0.014;
+      if(f.life <= 0){ floaters.splice(i,1); continue; }
+      ctx.globalAlpha = Math.min(1, f.life*1.6);
+      ctx.font = 'bold 24px serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.65)'; ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1; ctx.textAlign = 'start';
+  }
+  function drawTrails(){
+    balls.forEach(b=>{
+      if(b.potted || !b.trail || b.trail.length < 2) return;
+      const col = b.cue ? '#9fe8ff' : b.color;
+      for(let i=0;i<b.trail.length;i++){
+        const t = b.trail[i], k = (i+1)/b.trail.length;
+        ctx.globalAlpha = 0.28*k; ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(t.x, t.y, b.r*(0.35 + 0.55*k), 0, Math.PI*2); ctx.fill();
+      }
+    });
+    ctx.globalAlpha = 1;
+  }
+  function drawRailGlow(){
+    const c = mix(currentTable().felt[0], '#ffffff', 0.55);
+    ctx.save();
+    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 14; ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.32 + 0.08*Math.sin(performance.now()/700);
+    ctx.strokeRect(CUSHION, CUSHION, W-2*CUSHION, H-2*CUSHION);
+    ctx.restore();
+  }
+
+  // ---------------- POWER-UPS (own twist: Ghost Aim + Power Surge) ----------------
+  const PU = { ghostLeft:1, surgeLeft:1, ghostArmed:false, surgeArmed:false };
+  const puGhostBtn = document.getElementById('puGhostBtn');
+  const puSurgeBtn = document.getElementById('puSurgeBtn');
+  function cuePerk(){
+    const id = save.selected;
+    return { surge: id==='royal' ? 1.5 : 1.3, ghostUses: id==='ocean' ? 2 : 1, surgeUses: id==='ebony' ? 2 : 1 };
+  }
+  function renderPowerUps(){
+    puGhostBtn.classList.toggle('pu-armed', PU.ghostArmed);
+    puGhostBtn.classList.toggle('pu-used', PU.ghostLeft <= 0 && !PU.ghostArmed);
+    puSurgeBtn.classList.toggle('pu-armed', PU.surgeArmed);
+    puSurgeBtn.classList.toggle('pu-used', PU.surgeLeft <= 0 && !PU.surgeArmed);
+    puGhostBtn.querySelector('.lbl').textContent = 'Ghost ' + PU.ghostLeft;
+    puSurgeBtn.querySelector('.lbl').textContent = 'Surge ' + PU.surgeLeft;
+  }
+  function resetPowerUps(){
+    const pk = cuePerk();
+    PU.ghostLeft = pk.ghostUses; PU.surgeLeft = pk.surgeUses; PU.ghostArmed = false; PU.surgeArmed = false;
+    renderPowerUps();
+  }
+  function togglePowerUp(kind){
+    if(paused || frameOver || shotInFlight || charging) return;
+    if(mode===1 && currentPlayer===1) return; // House's turn
+    const armedKey = kind + 'Armed', leftKey = kind + 'Left';
+    if(PU[armedKey]){ PU[armedKey] = false; PU[leftKey] += 1; }
+    else if(PU[leftKey] > 0){ PU[armedKey] = true; PU[leftKey] -= 1; haptic('light'); }
+    renderPowerUps();
+  }
+  puGhostBtn.addEventListener('click', ()=>togglePowerUp('ghost'));
+  puSurgeBtn.addEventListener('click', ()=>togglePowerUp('surge'));
+
+  // ---------------- BADGES + STREAKS (progression) ----------------
+  let streakPots = 0;
+  const BADGES = [
+    { id:'first_pot', ico:'🎯', name:'First Blood', desc:'Pot your first ball', test:()=>save.stats.potted >= 1 },
+    { id:'pot50', ico:'🔫', name:'Sharpshooter', desc:'Pot 50 balls', test:()=>save.stats.potted >= 50 },
+    { id:'break10', ico:'🧱', name:'Break Builder', desc:'Make a 10+ break', test:()=>save.stats.bestBreak >= 10 },
+    { id:'break30', ico:'🏰', name:'Century Chaser', desc:'Make a 30+ break', test:()=>save.stats.bestBreak >= 30 },
+    { id:'first_win', ico:'🏆', name:'Table Master', desc:'Win a frame', test:()=>save.stats.won >= 1 },
+    { id:'streak3', ico:'🔥', name:'Hot Streak', desc:'Pot 3 times in one visit', test:()=>(save.streakBest||0) >= 3 },
+  ];
+  function checkBadges(){
+    BADGES.forEach(b=>{
+      if(save.badges.includes(b.id) || !b.test()) return;
+      save.badges.push(b.id);
+      addRewards(60, 0, 60);
+      floater(W/2, H/2 - 30, b.ico + ' ' + b.name + ' unlocked!', '#7ef0ff');
+      sfxClaim(); haptic('success');
+    });
+    persistSave();
+  }
+  function renderBadges(){
+    const grid = document.getElementById('badgeGrid'); if(!grid) return;
+    grid.innerHTML = BADGES.map(b=>{
+      const earned = save.badges.includes(b.id);
+      return '<div class="badge' + (earned ? ' earned' : '') + '"><div class="b-ico">' + b.ico + '</div><div class="b-name">' + b.name + '</div><div class="b-desc">' + b.desc + '</div></div>';
+    }).join('');
+  }
 
   // ============ LOBBY RENDERING ============
   function updateWallet(){
@@ -968,6 +1124,7 @@
     document.getElementById('statPotted').textContent = save.stats.potted;
     document.getElementById('statLevel').textContent = playerLevel();
     [...soundSeg.children].forEach(b=>b.classList.toggle('active', (b.dataset.sound==='on')===save.settings.sound));
+    renderBadges();
   }
   soundSeg.addEventListener('click', (e)=>{
     const btn = e.target.closest('button'); if(!btn) return;
@@ -1215,7 +1372,7 @@
     names[0] = (p1NameInput.value || 'Player 1').trim().slice(0,14);
     names[1] = mode===2 ? (p2NameInput.value || 'Player 2').trim().slice(0,14) : 'House';
     p1Label.textContent = names[0].toUpperCase();
-    p2Label.textContent = mode===2 ? names[1].toUpperCase() : 'BEST BREAK';
+    p2Label.textContent = mode===2 ? names[1].toUpperCase() : 'HOUSE (CPU)';
     const d = DIFF[difficulty];
     frictionCoeff = d.friction; ballOnCushionCoeff = d.cushion; showAidLine = d.aidLine;
     showScreen(gameScreen);
@@ -1241,6 +1398,7 @@
       balls.push({x:spots[name].x,y:spots[name].y,vx:0,vy:0,color:COLORS[name],r:BALL_R,cue:false,potted:false,kind:name});
     });
     scores = [0,0]; currentPlayer = 0; currentBreak = 0;
+    streakPots = 0; particles.length = 0; floaters.length = 0; resetPowerUps();
     phase = 'reds'; expectRed = true; colorSequenceIdx = 0; frameOver = false;
     ballInHand = true; // the breaking player places the cue ball anywhere in the D
     updateHud();
@@ -1482,7 +1640,9 @@
     powerFillEl.style.height = '0%';
     const cue = getCue(); if(!cue) return;
     if(pct > 0.03){
-      const power = pct * 46 * powerMultiplier();
+      const power = pct * 46 * powerMultiplier() * (PU.surgeArmed ? cuePerk().surge : 1);
+      if(PU.surgeArmed){ floater(cue.x, cue.y - 26, '⚡ SURGE', '#ffcc4d'); }
+      PU.ghostArmed = false; PU.surgeArmed = false; renderPowerUps();
       cue.vx = Math.cos(lastAngle)*power; cue.vy = Math.sin(lastAngle)*power;
       firstHitThisShot = null; potsThisShot = []; shotInFlight = true; shotWatchdogAt = performance.now();
       setMsg('', 'info');
@@ -1573,7 +1733,7 @@
     const pullBack = charging ? pct * 55 : (aiming ? 30 : 0);
     powerFillEl.style.height = Math.round(pct*100) + '%';
 
-    if(showAidLine){
+    if(showAidLine || PU.ghostArmed){
       ctx.save();
       ctx.setLineDash([6,6]);
       ctx.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -1723,10 +1883,15 @@
       b.vx *= frictionCoeff; b.vy *= frictionCoeff;
       if(Math.abs(b.vx) < 0.045) b.vx = 0;
       if(Math.abs(b.vy) < 0.045) b.vy = 0;
-      if(b.x - b.r < CUSHION){ b.x = CUSHION + b.r; b.vx *= -ballOnCushionCoeff; }
-      if(b.x + b.r > W-CUSHION){ b.x = W-CUSHION - b.r; b.vx *= -ballOnCushionCoeff; }
-      if(b.y - b.r < CUSHION){ b.y = CUSHION + b.r; b.vy *= -ballOnCushionCoeff; }
-      if(b.y + b.r > H-CUSHION){ b.y = H-CUSHION - b.r; b.vy *= -ballOnCushionCoeff; }
+      if(b.x - b.r < CUSHION){ b.x = CUSHION + b.r; sfxRail(Math.abs(b.vx)); b.vx *= -ballOnCushionCoeff; }
+      if(b.x + b.r > W-CUSHION){ b.x = W-CUSHION - b.r; sfxRail(Math.abs(b.vx)); b.vx *= -ballOnCushionCoeff; }
+      if(b.y - b.r < CUSHION){ b.y = CUSHION + b.r; sfxRail(Math.abs(b.vy)); b.vy *= -ballOnCushionCoeff; }
+      if(b.y + b.r > H-CUSHION){ b.y = H-CUSHION - b.r; sfxRail(Math.abs(b.vy)); b.vy *= -ballOnCushionCoeff; }
+      if(Math.hypot(b.vx, b.vy) > 1.2){
+        if(!b.trail) b.trail = [];
+        b.trail.push({ x:b.x, y:b.y });
+        if(b.trail.length > 9) b.trail.shift();
+      } else if(b.trail && b.trail.length){ b.trail.shift(); }
     });
     for(let i=0;i<balls.length;i++){
       for(let j=i+1;j<balls.length;j++){
@@ -1743,6 +1908,7 @@
           const kx=a.vx-b.vx, ky=a.vy-b.vy, p=(kx*nx+ky*ny);
           a.vx -= p*nx; a.vy -= p*ny;
           b.vx += p*nx; b.vy += p*ny;
+          sfxClick(Math.abs(p));
         }
       }
     }
@@ -1750,7 +1916,8 @@
       if(b.potted) return;
       pockets.forEach(p=>{
         if(Math.hypot(b.x-p.x, b.y-p.y) < POCKET_R*0.85){
-          b.potted = true; b.vx=0; b.vy=0;
+          b.potted = true; b.vx=0; b.vy=0; b.trail = [];
+          burst(p.x, p.y, b.cue ? '#9fe8ff' : b.color, 22);
           if(shotInFlight) potsThisShot.push(b);
         }
       });
@@ -1779,7 +1946,7 @@
     switchTurn();
   }
   function switchTurn(){
-    currentPlayer = 1-currentPlayer; currentBreak = 0; updateHud();
+    currentPlayer = 1-currentPlayer; currentBreak = 0; streakPots = 0; updateHud();
     if(!frameOver){
       const target = phase==='reds' ? (expectRed?'a RED':'any COLOUR') : COLOR_ORDER[colorSequenceIdx];
       setMsg(names[currentPlayer] + '’s turn — aim for ' + (typeof target==='string' && phase==='colors' ? target.toUpperCase() : target), 'info');
@@ -1837,10 +2004,23 @@
     if(legalPot){
       scores[currentPlayer] += gained;
       currentBreak += gained;
-      save.stats.potted += nonCuePots.length;
-      if(currentBreak > save.stats.bestBreak) save.stats.bestBreak = currentBreak;
-      addRewards(gained * 2, 0, gained * 2);
+      // The computer's pots must not pay out coins/stats/badges to the human player.
+      const humanShot = !(mode===1 && currentPlayer===1);
+      if(humanShot){
+        save.stats.potted += nonCuePots.length;
+        if(currentBreak > save.stats.bestBreak) save.stats.bestBreak = currentBreak;
+        addRewards(gained * 2, 0, gained * 2);
+      }
+      floater(W/2, H/2, '+' + gained, humanShot ? '#7ef0ff' : '#ff9ab0');
       sfxPot();
+      streakPots += 1;
+      if(humanShot && streakPots >= 3){
+        save.streakBest = Math.max(save.streakBest||0, streakPots);
+        addRewards(streakPots * 5, 0, 0);
+        floater(W/2, H/2 - 34, '🔥 STREAK ×' + streakPots + '  +' + (streakPots*5) + '🪙', '#ffb347');
+        sfxStreak(streakPots);
+      }
+      if(humanShot) checkBadges();
       setMsg('+' + gained + ' for ' + names[currentPlayer] + ' — break of ' + currentBreak, 'ok');
       if(phase==='reds'){
         const anyRedPotted = nonCuePots.some(b=>b.kind==='red');
@@ -1884,7 +2064,8 @@
     if(p1Won) save.stats.won += 1;
     const rewardCoins = p1Won ? 80 : 30;
     addRewards(rewardCoins, p1Won ? 2 : 0, rewardCoins);
-    sfxClaim();
+    if(p1Won) sfxWin(); else if(!isDraw) sfxLose(); else sfxClaim();
+    checkBadges();
     endTitle.textContent = title;
     endLine.textContent = line + '  ·  +' + rewardCoins + ' 🪙' + (p1Won ? ' +2 💎' : '');
 
@@ -1933,7 +2114,7 @@
   let loopStarted = false;
   function startLoop(){
     loopStarted = true;
-    function loop(){ step(); drawTable(); drawBalls(); drawBallInHandHint(); drawAim(); requestAnimationFrame(loop); }
+    function loop(){ step(); drawTable(); drawRailGlow(); drawTrails(); drawBalls(); drawBallInHandHint(); drawAim(); drawFX(); requestAnimationFrame(loop); }
     loop();
   }
 

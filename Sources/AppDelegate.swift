@@ -16,7 +16,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 
-class GameViewController: UIViewController {
+class GameViewController: UIViewController, WKScriptMessageHandler {
     private var webView: WKWebView!
 
     override var prefersStatusBarHidden: Bool { true }
@@ -28,6 +28,7 @@ class GameViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.05, green: 0.05, blue: 0.12, alpha: 1)
         let config = WKWebViewConfiguration()
+        config.userContentController.add(self, name: "haptic")
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         webView = WKWebView(frame: view.bounds, configuration: config)
@@ -44,6 +45,17 @@ class GameViewController: UIViewController {
         view.addSubview(webView)
         if let url = Bundle.main.url(forResource: "game", withExtension: "html") {
             webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        }
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "haptic", let kind = message.body as? String else { return }
+        switch kind {
+        case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case "error": UINotificationFeedbackGenerator().notificationOccurred(.error)
+        case "heavy": UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        case "medium": UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        default: UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
 }
