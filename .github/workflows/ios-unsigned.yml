@@ -1,0 +1,32 @@
+# Builds an UNSIGNED iOS .ipa on a GitHub Mac; sign it with Sideloadly/AltStore
+# using a free Apple ID to install on your own iPhone from Windows.
+# Trigger: GitHub repo -> Actions -> "iOS unsigned IPA" -> Run workflow.
+name: iOS unsigned IPA
+on:
+  workflow_dispatch:
+jobs:
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build (no code signing)
+        run: |
+          xcodebuild -project ExpertSnooker.xcodeproj -scheme ExpertSnooker \
+            -configuration Release -sdk iphoneos -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/ExpertSnooker.app Payload/
+          zip -qry ExpertSnooker_unsigned.ipa Payload
+          ls -lh ExpertSnooker_unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExpertSnooker_unsigned_ipa
+          path: ExpertSnooker_unsigned.ipa
+          retention-days: 7

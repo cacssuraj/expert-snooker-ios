@@ -1,0 +1,1951 @@
+<title>Expert Snooker Game</title>
+<style>
+  :root{
+    --felt-1:#18c987; --felt-2:#0a6b47;
+    --wood-1:#5c3417; --wood-2:#3a1f0e; --wood-3:#1c0e05;
+    --gold:#ffcc4d; --gold-dim:#e0a520;
+    --cream:#fdf6e8;
+    --ink:#0a0e2a; --panel:#161b3d; --panel-2:#1f2650;
+    --line:#334080; --muted:#8f9bd6;
+    --ok:#33d17a; --bad:#ff5470;
+    --accent-cyan:#28d9e0; --accent-purple:#a15cff; --accent-orange:#ff8a3d;
+    --accent-pink:#ff5fa2; --accent-teal:#1ec9a0;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){ --ink:#eef1ff; --panel:#ffffff; --panel-2:#f2f4ff; --cream:#1a1f3d; --muted:#5b64a0; --line:#d6dcff; }
+  }
+  :root[data-theme="light"]{ --ink:#eef1ff; --panel:#ffffff; --panel-2:#f2f4ff; --cream:#1a1f3d; --muted:#5b64a0; --line:#d6dcff; }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% 0, rgba(161,92,255,0.25), transparent 70%) fixed,
+      radial-gradient(ellipse 900px 600px at 100% 0, rgba(40,217,224,0.18), transparent 65%) fixed,
+      var(--ink);
+    color:var(--cream);
+    font-family:Georgia,'Times New Roman',serif;
+    min-height:100%;
+    display:flex; flex-direction:column; align-items:center;
+    overflow-x:hidden; overscroll-behavior:none;
+  }
+  .app{ width:100%; max-width:1000px; padding:14px 12px calc(20px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; align-items:center; gap:10px; }
+  body.in-game .app{ max-width:100%; }
+
+  /* ---------- Rotate gate ---------- */
+  .rotate-gate{ position:fixed; inset:0; z-index:50; background:var(--ink); display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:24px; }
+  .rotate-gate .icon{ font-size:52px; animation:tilt 1.6s ease-in-out infinite; }
+  @keyframes tilt{ 0%,100%{transform:rotate(0deg);} 50%{transform:rotate(90deg);} }
+  .rotate-gate h2{ font-size:18px; color:var(--gold); text-transform:uppercase; letter-spacing:0.1em; margin:0; }
+  .rotate-gate p{ color:var(--muted); font-size:14px; max-width:280px; margin:0; }
+  @media (orientation:portrait) and (max-width:900px){ .rotate-gate{ display:flex; } .app{ display:none; } }
+
+  [hidden]{ display:none !important; }
+  .screen{ width:100%; display:flex; flex-direction:column; align-items:center; gap:14px; }
+  button{
+    font-family:Georgia,'Times New Roman',serif; letter-spacing:0.05em; text-transform:uppercase; font-size:14.5px;
+    background:linear-gradient(135deg,#ffcc4d,#ff8a3d); color:#3a1e05; border:none; padding:11px 20px; border-radius:9px;
+    cursor:pointer; font-weight:700; box-shadow:0 4px 0 #c46a1f, 0 8px 16px rgba(255,140,61,0.35);
+  }
+  button:active{ transform:translateY(2px); box-shadow:0 1px 0 #c46a1f; }
+  button.secondary{ background:transparent; color:var(--cream); border:1px solid var(--line); box-shadow:none; }
+  button.ghost{ background:transparent; color:var(--muted); border:1px solid transparent; box-shadow:none; text-decoration:underline; text-underline-offset:3px; }
+  button:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  .brand{ display:flex; flex-direction:column; align-items:center; gap:2px; margin-top:2px; }
+  .crest{ width:40px; height:40px; border-radius:50%; background:conic-gradient(from 200deg, var(--accent-purple), var(--accent-cyan), var(--gold), var(--accent-pink), var(--accent-purple)); padding:2.5px; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(161,92,255,0.4); }
+  .crest::after{ content:'ES'; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle at 35% 30%, #1c1c3a, #05050f 70%); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--gold); font-weight:700; }
+  .brand h1{ font-weight:700; letter-spacing:0.14em; text-transform:uppercase; font-size:clamp(16px,3.4vw,22px); background:linear-gradient(90deg,var(--gold),var(--accent-pink)); -webkit-background-clip:text; background-clip:text; color:transparent; margin:4px 0 0; }
+  .brand .tag{ font-style:italic; color:var(--muted); font-size:11px; margin-top:-2px; }
+  body.in-game .brand{ display:none; }
+
+  .menu-card{ width:100%; max-width:420px; background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:20px 20px 22px; box-shadow:0 18px 40px rgba(0,0,0,0.35); display:flex; flex-direction:column; gap:12px; }
+  .field-label{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  .seg{ display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .seg button{ flex:1; border-radius:0; box-shadow:none; background:transparent; color:var(--cream); border:none; padding:10px 6px; font-size:12px; }
+  .seg button.active{ background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple)); color:#0a0e2a; font-weight:700; }
+  input[type="text"]{ width:100%; font-family:Georgia,serif; font-size:16px; background:var(--panel); border:1px solid var(--line); color:var(--cream); border-radius:8px; padding:9px 12px; }
+  .rules-mini{ font-size:12.5px; color:var(--muted); line-height:1.5; border-top:1px dashed var(--line); padding-top:8px; }
+
+  /* ---------- LOBBY (home) ---------- */
+  #lobbyScreen{ width:100%; max-width:1000px; gap:8px; }
+  .lb-topbar{ width:100%; display:flex; align-items:center; gap:6px; background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line); border-radius:12px; padding:6px 10px; flex-wrap:wrap; }
+  .lb-profile{ display:flex; align-items:center; gap:6px; flex:1 1 140px; min-width:0; }
+  .lb-avatar{ width:30px; height:30px; border-radius:50%; flex:0 0 auto; background:linear-gradient(160deg,var(--accent-purple),var(--accent-cyan)); display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .lb-pname{ font-size:11px; color:var(--cream); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px; }
+  .lb-xp{ width:70px; height:4px; border-radius:3px; background:rgba(0,0,0,0.35); overflow:hidden; margin-top:2px; }
+  .lb-xp-fill{ display:block; height:100%; background:linear-gradient(90deg,var(--accent-cyan),var(--gold)); }
+  .lb-lvl{ width:22px; height:22px; border-radius:50%; flex:0 0 auto; background:radial-gradient(circle at 35% 30%,#1c1c3a,#05050f 70%); border:1.5px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--gold); font-weight:700; }
+  .lb-icon-btn{ display:flex; flex-direction:column; align-items:center; gap:1px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:5px 9px; color:var(--cream); box-shadow:none; text-transform:none; flex:0 0 auto; }
+  .lb-icon-btn .ico{ font-size:14px; }
+  .lb-icon-btn .lbl{ font-size:8.5px; letter-spacing:0.03em; }
+  .lb-icon-btn .val{ font-size:9px; color:var(--muted); }
+  .lb-center-cluster{ display:flex; gap:5px; flex:2 1 auto; justify-content:center; flex-wrap:wrap; }
+  .lb-wallet{ display:flex; gap:5px; flex:0 0 auto; }
+  .lb-coin, .lb-gem{ display:flex; align-items:center; gap:4px; background:var(--panel); border-radius:999px; padding:5px 10px; font-size:11.5px; font-variant-numeric:tabular-nums; }
+  .lb-coin{ border:1px solid var(--gold-dim); color:var(--gold); }
+  .lb-gem{ border:1px solid var(--accent-cyan); color:var(--accent-cyan); }
+  .lb-settings{ width:30px; height:30px; border-radius:8px; background:transparent; border:1px solid var(--line); box-shadow:none; display:flex; align-items:center; justify-content:center; font-size:14px; padding:0; flex:0 0 auto; }
+
+  .lb-main{ width:100%; display:grid; grid-template-columns:0.85fr 1.5fr 0.85fr; gap:8px; align-items:stretch; }
+  .lb-side-col{ display:flex; flex-direction:column; gap:8px; }
+  .lb-card{ background:linear-gradient(160deg,var(--panel-2),var(--panel)); border:1px solid var(--line); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:6px; box-shadow:0 6px 14px rgba(0,0,0,0.3); }
+  .lb-card-title{ font-size:12px; font-weight:700; color:var(--cream); letter-spacing:0.02em; }
+  .lb-card-sub{ font-size:9.5px; color:var(--muted); }
+  .lb-progress-row{ display:flex; align-items:center; gap:6px; font-size:9px; color:var(--muted); }
+  .lb-progress-track{ display:block; flex:1 1 auto; height:5px; border-radius:3px; background:rgba(0,0,0,0.35); overflow:hidden; }
+  .lb-progress-fill{ display:block; height:100%; background:linear-gradient(90deg,var(--accent-teal),var(--gold)); }
+  .lb-meta-row{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted); }
+  .lb-meta-row b{ color:var(--gold); }
+  .lb-cta{ margin-top:auto; padding:8px 10px; font-size:10.5px; }
+  .lb-cta.small{ background:transparent; border:1px solid var(--accent-cyan); color:var(--accent-cyan); box-shadow:none; }
+
+  .lb-featured{ position:relative; overflow:hidden; padding:14px; border:1px solid var(--gold-dim); box-shadow:0 12px 30px rgba(255,140,61,0.25), 0 6px 14px rgba(0,0,0,0.4); background:
+      radial-gradient(ellipse 300px 160px at 15% 0%, rgba(255,204,77,0.18), transparent 60%),
+      linear-gradient(160deg,var(--panel-2),var(--panel)); }
+  .lb-featured-badge{ position:absolute; top:10px; right:10px; background:linear-gradient(135deg,var(--accent-pink),#d63a7e); color:#fff0f6; font-size:8.5px; letter-spacing:0.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
+  .lb-featured-balls{ display:flex; gap:4px; margin:2px 0; }
+  .lb-featured-balls i{ width:12px; height:12px; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,0.4) inset; display:inline-block; }
+  .lb-featured-title{ font-size:20px; font-weight:700; color:var(--gold); letter-spacing:0.01em; text-shadow:0 2px 6px rgba(0,0,0,0.5); }
+  .lb-featured-sub{ font-size:10.5px; color:var(--muted); margin-top:-4px; }
+  .lb-featured-stats{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:4px 0; }
+  .lb-stat-tile{ background:rgba(0,0,0,0.25); border-radius:8px; padding:6px 8px; text-align:center; }
+  .lb-stat-tile .v{ font-size:15px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; }
+  .lb-stat-tile .k{ font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .lb-featured-meta{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted); flex-wrap:wrap; gap:4px; }
+  .lb-featured-actions{ display:flex; gap:8px; margin-top:4px; }
+  .lb-play-now{ flex:1; font-size:13px; padding:12px; }
+  .lb-info-btn{ width:40px; flex:0 0 auto; background:transparent; border:1px solid var(--line); color:var(--muted); box-shadow:none; padding:0; }
+
+  .lb-chest-row{ width:100%; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .lb-chest{ background:linear-gradient(160deg,var(--panel-2),var(--panel)); border:1px solid var(--line); border-radius:10px; padding:7px 4px; display:flex; flex-direction:column; align-items:center; gap:2px; box-shadow:0 4px 10px rgba(0,0,0,0.25); }
+  .lb-chest.claimable{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset, 0 4px 12px rgba(255,204,77,0.3); }
+  .lb-chest .ico{ font-size:20px; }
+  .lb-chest .day{ font-size:9px; color:var(--muted); text-transform:uppercase; }
+  .lb-chest .amt{ font-size:10px; color:var(--gold); font-weight:700; }
+
+  .lb-bottom{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .lb-bottom-controls{ display:flex; gap:6px; }
+  .lb-round-btn{ position:relative; width:38px; height:38px; border-radius:50%; background:var(--panel); border:1px solid var(--line); box-shadow:none; display:flex; align-items:center; justify-content:center; font-size:15px; padding:0; }
+  .lb-badge-dot{ position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%; background:var(--bad); box-shadow:0 0 0 2px var(--panel); }
+  .lb-piggy{ display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,var(--accent-teal),#0a7d54); border-radius:999px; padding:7px 14px 7px 8px; box-shadow:0 6px 14px rgba(30,201,160,0.3); }
+  .lb-piggy .ico{ font-size:20px; }
+  .lb-piggy .txt{ display:flex; flex-direction:column; line-height:1.15; }
+  .lb-piggy .txt b{ font-size:10.5px; color:#eafff8; }
+  .lb-piggy .txt span{ font-size:9px; color:rgba(255,255,255,0.8); }
+
+  @media (max-height:520px) and (orientation:landscape){
+    .lb-featured-title{ font-size:16px; }
+    .lb-card{ padding:8px; }
+    .lb-featured{ padding:10px; }
+    .lb-chest .ico{ font-size:16px; }
+  }
+
+  /* ---------- Cues / Tables / Missions / Daily / Stats screens ---------- */
+  .cue-list{ display:flex; flex-direction:column; gap:12px; max-height:60vh; overflow-y:auto; padding-right:2px; }
+  .cue-item{ display:flex; flex-direction:column; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .cue-item.selected{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; }
+  .cue-item-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .cue-item-name{ font-size:17px; color:var(--cream); font-weight:700; }
+  .cue-level-pill{ font-size:12px; color:var(--gold); background:rgba(217,178,76,0.15); border:1px solid var(--gold-dim); border-radius:999px; padding:2px 9px; }
+  .cue-shaft-preview{ height:16px; border-radius:8px; width:100%; box-shadow:0 0 0 1px rgba(0,0,0,0.4) inset; }
+  .cue-item-desc{ font-size:13px; color:var(--muted); }
+  .cue-stats{ display:flex; flex-direction:column; gap:5px; margin-top:2px; }
+  .cue-stat-row{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .cue-stat-row .lbl{ width:40px; flex:0 0 auto; text-transform:uppercase; }
+  .cue-stat-track{ display:block; flex:1 1 auto; height:6px; border-radius:3px; background:rgba(0,0,0,0.35); overflow:hidden; }
+  .cue-stat-fill{ display:block; height:100%; background:linear-gradient(90deg,#3fae6a,#9fd6c2); }
+  .cue-item-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:2px; }
+  .cue-select-btn{ flex:0 0 auto; padding:9px 16px; font-size:13px; }
+
+  .day-strip{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+  .day-cell{ width:50px; height:62px; border-radius:8px; background:var(--panel); border:1px solid var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12px; color:var(--muted); }
+  .day-cell .dc-coin{ font-size:16px; }
+  .day-cell.done{ border-color:var(--ok); color:var(--ok); }
+  .day-cell.today{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; color:var(--gold); }
+
+  .stat-grid{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-tile{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 8px; text-align:center; }
+  .stat-tile .st-v{ font-size:24px; font-weight:700; color:var(--gold); }
+  .stat-tile .st-k{ font-size:12px; color:var(--muted); text-transform:uppercase; margin-top:2px; }
+
+  /* ---------- In-game screen ---------- */
+  #gameScreen{ width:100%; display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+  .topbar{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px; background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--line); border-radius:14px; padding:8px 12px; }
+  .player-card{ display:flex; align-items:center; gap:8px; min-width:0; flex:1 1 0; overflow:hidden; }
+  .player-card.right{ flex-direction:row-reverse; text-align:right; }
+  .avatar{ width:36px; height:36px; border-radius:50%; background:var(--panel-2); border:1.5px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+  .pinfo{ min-width:0; }
+  .pname{ font-size:13px; letter-spacing:0.05em; text-transform:uppercase; color:var(--cream); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+  .pscore-row{ display:flex; align-items:center; gap:6px; margin-top:2px; }
+  .pscore-row.reverse{ flex-direction:row-reverse; }
+  .pscore{ font-weight:700; font-size:20px; color:var(--gold); font-variant-numeric:tabular-nums; }
+  .ball-pips{ display:flex; gap:3px; }
+  .ball-pips i{ width:10px; height:10px; border-radius:50%; display:inline-block; box-shadow:0 0 0 1px rgba(0,0,0,0.4) inset; opacity:0.28; }
+  .ball-pips i.done{ opacity:1; }
+  .brandmini{ display:flex; align-items:center; gap:6px; flex:0 0 auto; padding:0 8px; }
+  .crest-sm{ width:30px;height:30px;border-radius:50%; background:radial-gradient(circle at 35% 30%,#1c1c1c,#060606 70%); border:1.5px solid var(--gold); display:flex;align-items:center;justify-content:center; font-size:12px; color:var(--gold); font-weight:700; }
+  .brandmini-text{ font-size:11px; line-height:1.2; letter-spacing:0.06em; color:var(--gold); text-align:left; }
+  .icon-btn.settings-btn{ background:transparent; border:1px solid var(--line); box-shadow:none; width:36px; height:36px; padding:0; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:17px; flex:0 0 auto; }
+
+  .mid-row{ width:100%; display:flex; align-items:stretch; gap:10px; flex:1 1 auto; min-height:0; }
+  .sidebar{ flex:0 0 62px; display:flex; flex-direction:column; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:6px; }
+  .sidebar .icon-btn{ background:transparent; box-shadow:none; border:1px solid transparent; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 2px; border-radius:8px; font-size:11px; text-transform:none; letter-spacing:0; font-weight:600; }
+  .sidebar .icon-btn .ico{ font-size:18px; line-height:1; }
+  .sidebar .icon-btn.active{ background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple)); color:#fff; }
+
+  .table-wrap{ position:relative; width:100%; padding:20px; background: repeating-linear-gradient(100deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 2px, transparent 5px), linear-gradient(160deg, var(--wood-1), var(--wood-2) 55%, var(--wood-3)); border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(217,178,76,0.3), inset 0 2px 4px rgba(255,255,255,0.08), inset 0 0 40px rgba(0,0,0,0.65); }
+  .rail{ position:relative; border-radius:8px; overflow:hidden; background:var(--felt-2); box-shadow: inset 0 0 40px rgba(0,0,0,0.6); }
+  canvas{ display:block; width:100%; height:auto; touch-action:none; cursor:crosshair; }
+
+  .power-rail{ flex:0 0 64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:var(--panel); border:2px solid var(--gold-dim); border-radius:14px; padding:10px 6px; cursor:pointer; touch-action:none; user-select:none; box-shadow:0 4px 12px rgba(0,0,0,0.3); }
+  .power-rail:active, .power-rail.charging{ border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset, 0 4px 16px rgba(255,204,77,0.35); }
+  .power-label{ font-size:10px; letter-spacing:0.08em; color:var(--gold); text-align:center; line-height:1.3; font-weight:700; }
+  .power-track{ width:16px; flex:1 1 auto; min-height:70px; background:rgba(0,0,0,0.4); border:1px solid var(--line); border-radius:8px; display:flex; align-items:flex-end; overflow:hidden; }
+  .power-fill{ width:100%; height:0%; background:linear-gradient(0deg,#e0433a,#f2c318); transition:height 0.05s linear; }
+  .cue-icon{ font-size:18px; transform:rotate(90deg); }
+
+  .target-strip{ display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:13.5px; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); }
+  .target-strip .swatch{ width:16px;height:16px;border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,0.4) inset, 0 1px 2px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.25); }
+  .target-strip b{ color:var(--gold); font-weight:700; }
+  .msg-inline{ margin-left:6px; padding-left:10px; border-left:1px solid var(--line); color:var(--gold); text-transform:none; }
+
+  .legend{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; font-size:13px; color:var(--muted); }
+  .legend span{ display:flex; align-items:center; gap:5px; }
+  .legend i{ width:11px;height:11px;border-radius:50%; display:inline-block; box-shadow:0 0 0 1px rgba(0,0,0,0.4) inset;}
+
+  @media (orientation:landscape) and (max-height:560px){
+    body.in-game .app{ padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px)); gap:6px; height:100vh; }
+    #gameScreen{ gap:6px; height:100%; }
+    #gameScreen .mid-row{ min-height:0; }
+    #gameScreen .table-col{ flex:1 1 auto; display:flex; align-items:center; justify-content:center; min-width:0; height:100%; }
+    #gameScreen .table-wrap{ padding:6px; height:100%; width:auto; display:flex; align-items:center; }
+    #gameScreen .table-wrap .rail{ height:100%; }
+    #gameScreen canvas{ height:100%; width:auto; max-width:none; }
+    body.in-game .topbar{ padding:5px 8px; }
+    body.in-game .avatar{ width:28px; height:28px; font-size:14px; }
+    body.in-game .pname{ font-size:11px; max-width:90px; }
+    body.in-game .pscore{ font-size:16px; }
+    body.in-game .brandmini-text{ font-size:9.5px; }
+    body.in-game .crest-sm{ width:22px; height:22px; font-size:9px; }
+    body.in-game .sidebar{ flex-basis:50px; }
+    body.in-game .sidebar .icon-btn .lbl{ display:none; }
+    body.in-game .sidebar .icon-btn .ico{ font-size:19px; }
+    body.in-game .power-rail{ flex-basis:54px; }
+    body.in-game .power-label{ font-size:8px; }
+    body.in-game .target-strip{ font-size:11px; padding:5px 12px; }
+  }
+
+  /* ---------- Overlays ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(6,4,2,0.72); display:flex; align-items:center; justify-content:center; padding:20px; z-index:20; }
+  .overlay-card{ width:100%; max-width:400px; max-height:100%; overflow-y:auto; background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--gold-dim); border-radius:16px; padding:26px 24px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:14px; align-items:center; }
+  .overlay-card h2{ color:var(--gold); letter-spacing:0.08em; text-transform:uppercase; font-size:20px; margin:0; }
+  .overlay-card .result-line{ font-size:16px; color:var(--cream); }
+  .overlay-actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .end-badge{ font-size:64px; line-height:1; filter:drop-shadow(0 6px 14px rgba(0,0,0,0.5)); animation:badgePop .5s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes badgePop{ 0%{ transform:scale(0) rotate(-15deg); opacity:0; } 60%{ transform:scale(1.15) rotate(4deg); opacity:1; } 100%{ transform:scale(1) rotate(0); } }
+  .end-stars{ display:flex; gap:8px; font-size:30px; }
+  .end-stars .star{ color:rgba(255,255,255,0.15); text-shadow:none; transition:color .2s; }
+  .end-stars .star.filled{ color:var(--gold); text-shadow:0 0 12px rgba(255,199,79,0.7); animation:starPop .45s cubic-bezier(.34,1.56,.64,1) backwards; }
+  .end-stars .star.filled:nth-child(1){ animation-delay:.15s; }
+  .end-stars .star.filled:nth-child(2){ animation-delay:.3s; }
+  .end-stars .star.filled:nth-child(3){ animation-delay:.45s; }
+  @keyframes starPop{ 0%{ transform:scale(0) rotate(-40deg); opacity:0; } 70%{ transform:scale(1.3) rotate(10deg); opacity:1; } 100%{ transform:scale(1) rotate(0); } }
+  #endOverlay.result-win .overlay-card{ border-color:var(--gold); box-shadow:0 20px 70px rgba(255,199,79,0.25),0 20px 60px rgba(0,0,0,0.6); }
+  #endOverlay.result-win h2{ color:var(--gold); }
+  #endOverlay.result-lose .overlay-card{ border-color:#7a2b3a; box-shadow:0 20px 70px rgba(200,40,60,0.25),0 20px 60px rgba(0,0,0,0.6); }
+  #endOverlay.result-lose h2{ color:#ff6b7a; }
+
+  .foot{ font-size:11px; color:var(--muted); text-align:center; max-width:560px; line-height:1.5; }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap">
+
+<div class="rotate-gate">
+  <div class="icon">📱</div>
+  <h2>Rotate your phone</h2>
+  <p>Expert Snooker plays in landscape, like a real table. Turn your phone sideways to start potting.</p>
+</div>
+
+<div class="app">
+
+  <div class="brand">
+    <div class="crest"></div>
+    <h1>Expert Snooker</h1>
+    <div class="tag">Championship Edition</div>
+  </div>
+
+  <!-- ============ LOBBY (home) SCREEN ============ -->
+  <div class="screen" id="lobbyScreen">
+    <div class="lb-topbar">
+      <div class="lb-profile">
+        <div class="lb-avatar">🧑</div>
+        <div>
+          <div class="lb-pname" id="lbPlayerName">Player 1</div>
+          <div class="lb-xp"><div class="lb-xp-fill" id="lbXpFill"></div></div>
+        </div>
+        <div class="lb-lvl" id="lbLevel">1</div>
+      </div>
+
+      <div class="lb-center-cluster">
+        <button class="lb-icon-btn" id="lbCuesBtn"><span class="ico">🎱</span><span class="lbl">CUES</span><span class="val" id="lbCueCount">1/4</span></button>
+        <button class="lb-icon-btn" id="lbFreeBtn"><span class="ico">🎁</span><span class="lbl">REWARDS</span></button>
+        <button class="lb-icon-btn" id="lbLeaderBtn"><span class="ico">🏆</span><span class="lbl">STATS</span></button>
+        <button class="lb-icon-btn" id="lbShopBtn"><span class="ico">🛒</span><span class="lbl">SHOP</span></button>
+      </div>
+
+      <div class="lb-wallet">
+        <div class="lb-coin">🪙 <span id="lbCoinVal">0</span></div>
+        <div class="lb-gem">💎 <span id="lbGemVal">0</span></div>
+      </div>
+      <button class="lb-settings" id="lbSettingsBtn">⚙️</button>
+    </div>
+
+    <div class="lb-main">
+      <div class="lb-side-col">
+        <div class="lb-card">
+          <div class="lb-card-title">Cueist Pass</div>
+          <div class="lb-card-sub">Level up by playing frames</div>
+          <div class="lb-progress-row"><span>XP</span><span class="lb-progress-track"><span class="lb-progress-fill" id="lbPassFill"></span></span></div>
+          <div class="lb-meta-row"><span>Level</span><b id="lbPassLevel">1</b></div>
+          <button class="lb-cta small" id="lbPassBtn">Missions</button>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Table Event</div>
+          <div class="lb-card-sub" id="lbEventLabel">Pot 20 balls</div>
+          <div class="lb-progress-row"><span id="lbEventCount">0/20</span><span class="lb-progress-track"><span class="lb-progress-fill" id="lbEventFill"></span></span></div>
+          <div class="lb-meta-row"><span>Reward</span><b id="lbEventReward">300 🪙</b></div>
+          <button class="lb-cta small" id="lbEventBtn">View Missions</button>
+        </div>
+      </div>
+
+      <div class="lb-card lb-featured">
+        <div class="lb-featured-badge">Championship</div>
+        <div class="lb-featured-balls">
+          <i style="background:#c0272d"></i><i style="background:#f2c318"></i><i style="background:#1e7d4a"></i><i style="background:#7a4426"></i><i style="background:#1b4fa0"></i><i style="background:#e07aa8"></i><i style="background:#141414"></i>
+        </div>
+        <div class="lb-featured-title">Break &amp; Run</div>
+        <div class="lb-featured-sub">Full snooker rules — reds, colours, the works</div>
+        <div class="lb-featured-stats">
+          <div class="lb-stat-tile"><div class="v" id="lbBestBreak">0</div><div class="k">Best Break</div></div>
+          <div class="lb-stat-tile"><div class="v" id="lbFramesWon">0</div><div class="k">Frames Won</div></div>
+        </div>
+        <div class="lb-featured-meta">
+          <span>Entry: <b style="color:var(--gold)">Free</b></span>
+          <span>Mode: <b style="color:var(--gold)">Snooker</b></span>
+        </div>
+        <div class="lb-featured-actions">
+          <button class="lb-play-now" id="lbPlayNowBtn">▶ Play Now</button>
+          <button class="lb-info-btn" id="lbInfoBtn">ℹ</button>
+        </div>
+      </div>
+
+      <div class="lb-side-col">
+        <div class="lb-card">
+          <div class="lb-card-title">Solo Practice</div>
+          <div class="lb-card-sub">No opponent, just you and the table</div>
+          <div class="lb-meta-row"><span>Frames played</span><b id="lbFramesPlayed">0</b></div>
+          <div class="lb-meta-row"><span>Mode</span><b>1 Player</b></div>
+          <button class="lb-cta small" id="lbPracticeBtn">Practice</button>
+        </div>
+        <div class="lb-card">
+          <div class="lb-card-title">Local Rivals</div>
+          <div class="lb-card-sub">Pass the phone, best of one frame</div>
+          <div class="lb-meta-row"><span>Mode</span><b>2 Players</b></div>
+          <div class="lb-meta-row"><span>Entry</span><b style="color:var(--gold)">Free</b></div>
+          <button class="lb-cta small" id="lbRivalsBtn">2 Player</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lb-chest-row" id="lbChestRow"></div>
+
+    <div class="lb-bottom">
+      <div class="lb-bottom-controls">
+        <button class="lb-round-btn" id="lbGiftBtn">🎁<span class="lb-badge-dot" id="lbGiftDot" hidden></span></button>
+        <button class="lb-round-btn" id="lbFriendsBtn">🤝</button>
+        <button class="lb-round-btn" id="lbRulesBtn">ℹ</button>
+      </div>
+      <div class="lb-piggy" id="lbPiggyBtn">
+        <span class="ico">🐷</span>
+        <div class="txt"><b>Piggy Bank</b><span id="lbPiggyText">Visit the shop</span></div>
+      </div>
+    </div>
+
+    <div class="foot">Offline · No account needed · Your progress saves on this device</div>
+  </div>
+
+  <!-- CUES COLLECTION SCREEN -->
+  <div class="screen" id="cuesScreen" hidden>
+    <div class="menu-card" style="max-width:460px;">
+      <div class="field-label">Your Cues</div>
+      <div class="cue-list" id="cueList"></div>
+      <button class="secondary" id="cuesBackBtn">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- TABLES SCREEN -->
+  <div class="screen" id="tablesScreen" hidden>
+    <div class="menu-card" style="max-width:460px;">
+      <div class="field-label">Your Tables</div>
+      <div class="cue-list" id="tableList"></div>
+      <button class="secondary" id="tablesBackBtn">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- MISSIONS SCREEN -->
+  <div class="screen" id="missionsScreen" hidden>
+    <div class="menu-card" style="max-width:460px;">
+      <div class="field-label">Missions</div>
+      <div class="cue-list" id="missionList"></div>
+      <button class="secondary" id="missionsBackBtn">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- DAILY REWARD SCREEN -->
+  <div class="screen" id="dailyScreen" hidden>
+    <div class="menu-card" style="max-width:420px; align-items:center; text-align:center;">
+      <div class="field-label">Daily Reward</div>
+      <div class="day-strip" id="dayStrip"></div>
+      <div class="rules-mini" id="dailyStatusText">Come back each day to grow your streak.</div>
+      <button id="claimDailyBtn">Claim Reward</button>
+      <button class="secondary" id="dailyBackBtn">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- STATS SCREEN -->
+  <div class="screen" id="statsScreen" hidden>
+    <div class="menu-card" style="max-width:420px;">
+      <div class="field-label">Your Stats</div>
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="st-v" id="statPlayed">0</div><div class="st-k">Frames Played</div></div>
+        <div class="stat-tile"><div class="st-v" id="statWon">0</div><div class="st-k">Frames Won</div></div>
+        <div class="stat-tile"><div class="st-v" id="statWinRate">0%</div><div class="st-k">Win Rate</div></div>
+        <div class="stat-tile"><div class="st-v" id="statBestBreak">0</div><div class="st-k">Best Break</div></div>
+        <div class="stat-tile"><div class="st-v" id="statPotted">0</div><div class="st-k">Balls Potted</div></div>
+        <div class="stat-tile"><div class="st-v" id="statLevel">1</div><div class="st-k">Cueist Level</div></div>
+      </div>
+      <div class="field-label" style="margin-top:6px;">Sound</div>
+      <div class="seg" id="soundSeg">
+        <button data-sound="on" class="active">On</button>
+        <button data-sound="off">Off</button>
+      </div>
+      <button class="secondary" id="statsBackBtn">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- MENU (mode/difficulty) SCREEN -->
+  <div class="screen" id="menuScreen" hidden>
+    <div class="menu-card">
+      <div>
+        <div class="field-label">Mode</div>
+        <div class="seg" id="modeSeg">
+          <button data-mode="1" class="active">1 Player</button>
+          <button data-mode="2">2 Players</button>
+        </div>
+      </div>
+      <div id="namesBox">
+        <div class="field-label">Player 1 name</div>
+        <input type="text" id="p1Name" maxlength="14" value="Player 1" />
+        <div id="p2NameBox" hidden style="margin-top:10px;">
+          <div class="field-label">Player 2 name</div>
+          <input type="text" id="p2Name" maxlength="14" value="Player 2" />
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Difficulty (cushion bounce &amp; roll)</div>
+        <div class="seg" id="diffSeg">
+          <button data-diff="easy">Easy</button>
+          <button data-diff="pro" class="active">Pro</button>
+          <button data-diff="master">Master</button>
+        </div>
+      </div>
+      <button id="startBtn">Rack &amp; Break</button>
+      <button class="ghost" id="menuBackBtn">Back to Home</button>
+      <div class="rules-mini">
+        <b>Rules:</b> Pot a red (1 pt) then a colour (2–7 pts) alternately.
+        Colours are re-spotted until all reds are gone, then potted in order
+        yellow→green→brown→blue→pink→black. Missing the target ball,
+        potting the cue ball, or hitting the wrong ball first is a foul and
+        hands the turn (and points) to your opponent.
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="gameScreen" hidden>
+    <div class="topbar">
+      <div class="player-card" id="p1Card">
+        <div class="avatar">🧑</div>
+        <div class="pinfo">
+          <div class="pname" id="p1Label">PLAYER 1</div>
+          <div class="pscore-row"><span class="pscore" id="p1Score">0</span><div class="ball-pips" id="p1Pips"></div></div>
+        </div>
+      </div>
+      <div class="brandmini">
+        <div class="crest-sm">ES</div>
+        <div class="brandmini-text">EXPERT<br>SNOOKER</div>
+      </div>
+      <div class="player-card right" id="p2Card">
+        <div class="pinfo">
+          <div class="pname" id="p2Label">PLAYER 2</div>
+          <div class="pscore-row reverse"><span class="pscore" id="p2Score">0</span><div class="ball-pips" id="p2Pips"></div></div>
+        </div>
+        <div class="avatar">🧑</div>
+      </div>
+      <button class="icon-btn settings-btn" id="settingsBtn" title="Settings">⚙️</button>
+    </div>
+
+    <div class="mid-row">
+      <div class="sidebar">
+        <button class="icon-btn" id="homeBtn" title="Home"><span class="ico">⌂</span><span class="lbl">Home</span></button>
+        <button class="icon-btn active" title="Play"><span class="ico">▶</span><span class="lbl">Play</span></button>
+        <button class="icon-btn" id="restartSideBtn" title="Re-rack"><span class="ico">↻</span><span class="lbl">Re-rack</span></button>
+        <button class="icon-btn" id="rulesSideBtn" title="Rules"><span class="ico">ℹ</span><span class="lbl">Rules</span></button>
+      </div>
+
+      <div class="table-col">
+        <div class="table-wrap">
+          <div class="rail">
+            <canvas id="table" width="900" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="power-rail" id="fireBtn">
+        <div class="power-label" id="powerLabel">HOLD<br>TO<br>SHOOT</div>
+        <div class="power-track"><div class="power-fill" id="powerFillEl"></div></div>
+        <div class="cue-icon">🎱</div>
+      </div>
+    </div>
+
+    <div class="target-strip">
+      On <b id="targetName">RED</b> <span class="swatch" id="targetSwatch"></span>
+      <span style="opacity:0.6;">|</span> Break <b id="breakVal">0</b>
+      <span style="opacity:0.6;">|</span> Reds <b id="redsVal">15</b>
+      <span class="msg-inline" id="msg">&nbsp;</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Pause overlay -->
+<div class="overlay" id="pauseOverlay" hidden>
+  <div class="overlay-card">
+    <h2>Game Paused</h2>
+    <div class="result-line">Take your time — the table isn't going anywhere.</div>
+    <div class="overlay-actions">
+      <button id="resumeBtn">Resume</button>
+      <button class="secondary" id="quitBtn">Quit to Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rules overlay -->
+<div class="overlay" id="rulesOverlay" hidden>
+  <div class="overlay-card" style="max-width:460px; text-align:left;">
+    <h2 style="text-align:center;">How to Play</h2>
+    <div class="result-line" style="text-align:left; font-size:15px; line-height:1.6;">
+      1. Drag back from the cue ball (white) and release to strike — the further you drag, the more power.<br><br>
+      2. While reds remain: pot a red (1 pt), then any colour (2–7 pts), then a red again, alternating.<br><br>
+      3. Colours are re-spotted on their marks after being potted, until the reds run out.<br><br>
+      4. Once all reds are gone, colours must be potted in order: yellow, green, brown, blue, pink, black — and stay potted.<br><br>
+      5. A foul (wrong ball hit first, no ball hit, cue ball potted, or potting out of order) ends your break and gives the turn to your opponent.<br><br>
+      6. Highest score when the black is potted (or table is cleared) wins the frame.
+    </div>
+    <div class="legend" style="justify-content:flex-start; padding-top:6px; border-top:1px dashed var(--line);">
+      <span><i style="background:#c0272d"></i>Red 1</span>
+      <span><i style="background:#f2c318"></i>Yellow 2</span>
+      <span><i style="background:#1e7d4a"></i>Green 3</span>
+      <span><i style="background:#7a4426"></i>Brown 4</span>
+      <span><i style="background:#1b4fa0"></i>Blue 5</span>
+      <span><i style="background:#e07aa8"></i>Pink 6</span>
+      <span><i style="background:#141414"></i>Black 7</span>
+    </div>
+    <div class="overlay-actions">
+      <button id="closeRulesBtn">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- End of frame overlay -->
+<div class="overlay" id="endOverlay" hidden>
+  <div class="overlay-card">
+    <div class="end-badge" id="endBadge">🏆</div>
+    <h2 id="endTitle">Frame Complete</h2>
+    <div class="end-stars" id="endStars">
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+    </div>
+    <div class="result-line" id="endLine">Final score</div>
+    <div class="overlay-actions">
+      <button id="playAgainBtn">Play Again</button>
+      <button class="secondary" id="menuBtn">Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ============ DOM ============
+  const lobbyScreen = document.getElementById('lobbyScreen');
+  const cuesScreen = document.getElementById('cuesScreen');
+  const tablesScreen = document.getElementById('tablesScreen');
+  const missionsScreen = document.getElementById('missionsScreen');
+  const dailyScreen = document.getElementById('dailyScreen');
+  const statsScreen = document.getElementById('statsScreen');
+  const menuScreen = document.getElementById('menuScreen');
+  const gameScreen = document.getElementById('gameScreen');
+
+  const lbPlayerName = document.getElementById('lbPlayerName');
+  const lbXpFill = document.getElementById('lbXpFill');
+  const lbLevel = document.getElementById('lbLevel');
+  const lbCueCount = document.getElementById('lbCueCount');
+  const lbCoinVal = document.getElementById('lbCoinVal');
+  const lbGemVal = document.getElementById('lbGemVal');
+  const lbCuesBtn = document.getElementById('lbCuesBtn');
+  const lbFreeBtn = document.getElementById('lbFreeBtn');
+  const lbLeaderBtn = document.getElementById('lbLeaderBtn');
+  const lbShopBtn = document.getElementById('lbShopBtn');
+  const lbSettingsBtn = document.getElementById('lbSettingsBtn');
+  const lbPassFill = document.getElementById('lbPassFill');
+  const lbPassLevel = document.getElementById('lbPassLevel');
+  const lbPassBtn = document.getElementById('lbPassBtn');
+  const lbEventLabel = document.getElementById('lbEventLabel');
+  const lbEventCount = document.getElementById('lbEventCount');
+  const lbEventFill = document.getElementById('lbEventFill');
+  const lbEventReward = document.getElementById('lbEventReward');
+  const lbEventBtn = document.getElementById('lbEventBtn');
+  const lbBestBreak = document.getElementById('lbBestBreak');
+  const lbFramesWon = document.getElementById('lbFramesWon');
+  const lbPlayNowBtn = document.getElementById('lbPlayNowBtn');
+  const lbInfoBtn = document.getElementById('lbInfoBtn');
+  const lbFramesPlayed = document.getElementById('lbFramesPlayed');
+  const lbPracticeBtn = document.getElementById('lbPracticeBtn');
+  const lbRivalsBtn = document.getElementById('lbRivalsBtn');
+  const lbChestRow = document.getElementById('lbChestRow');
+  const lbGiftBtn = document.getElementById('lbGiftBtn');
+  const lbGiftDot = document.getElementById('lbGiftDot');
+  const lbFriendsBtn = document.getElementById('lbFriendsBtn');
+  const lbRulesBtn = document.getElementById('lbRulesBtn');
+  const lbPiggyBtn = document.getElementById('lbPiggyBtn');
+  const lbPiggyText = document.getElementById('lbPiggyText');
+
+  const cuesBackBtn = document.getElementById('cuesBackBtn');
+  const tablesBackBtn = document.getElementById('tablesBackBtn');
+  const missionsBackBtn = document.getElementById('missionsBackBtn');
+  const dailyBackBtn = document.getElementById('dailyBackBtn');
+  const statsBackBtn = document.getElementById('statsBackBtn');
+  const menuBackBtn = document.getElementById('menuBackBtn');
+  const cueList = document.getElementById('cueList');
+  const tableList = document.getElementById('tableList');
+  const missionList = document.getElementById('missionList');
+  const dayStrip = document.getElementById('dayStrip');
+  const dailyStatusText = document.getElementById('dailyStatusText');
+  const claimDailyBtn = document.getElementById('claimDailyBtn');
+  const soundSeg = document.getElementById('soundSeg');
+
+  // ============ PROGRESS (coins + cues + stats, saved locally) ============
+  const SAVE_KEY = 'expertSnookerSave';
+  const MAX_CUE_LEVEL = 5;
+  function defaultSave(){
+    return {
+      coins: 0, gems: 0, xp: 0,
+      owned: ['classic'], selected: 'classic', levels: { classic: 1 },
+      tableOwned: ['classic'], tableSelected: 'classic',
+      stats: { played: 0, won: 0, bestBreak: 0, potted: 0 },
+      missionsClaimed: [],
+      daily: { lastClaim: '', streak: 0 },
+      settings: { sound: true }
+    };
+  }
+  function loadSave(){
+    const d = defaultSave();
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        return Object.assign(d, parsed, {
+          levels: Object.assign(d.levels, parsed.levels||{}),
+          stats: Object.assign(d.stats, parsed.stats||{}),
+          daily: Object.assign(d.daily, parsed.daily||{}),
+          settings: Object.assign(d.settings, parsed.settings||{}),
+          owned: parsed.owned || d.owned,
+          tableOwned: parsed.tableOwned || d.tableOwned,
+          missionsClaimed: parsed.missionsClaimed || d.missionsClaimed
+        });
+      }
+    }catch(e){}
+    return d;
+  }
+  function persistSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+  let save = loadSave();
+
+  function xpForLevel(l){ return l * 150; }
+  function playerLevel(){ let lvl=1; while(save.xp >= xpForLevel(lvl)) lvl++; return lvl; }
+  function addRewards(coins, gems, xp){
+    save.coins += coins||0; save.gems += gems||0; save.xp += xp||(coins||0);
+    persistSave(); updateWallet();
+  }
+
+  const CUE_SKINS = [
+    { id:'classic', name:'Classic Ash', desc:'The house cue — always free', price:0, grain:['#e7c48d','#c99a5f','#a97a44'], joint:'#d9b24c', butt:['#3a2313','#1c1108'] },
+    { id:'ebony', name:'Ebony Noir', desc:'Dark stained shaft, silver rings', price:120, grain:['#4a4a4a','#2c2c2c','#161616'], joint:'#c9c9c9', butt:['#101010','#000000'] },
+    { id:'royal', name:'Royal Gold', desc:'Gilded shaft for a champion’s break', price:260, grain:['#f4e2a1','#d9b24c','#a4832f'], joint:'#f3ead4', butt:['#5a3a10','#2c1a06'] },
+    { id:'ocean', name:'Ocean Blue', desc:'Cool blue lacquer, brass fittings', price:180, grain:['#9fc9e8','#3f6fb0','#204a7a'], joint:'#d9b24c', butt:['#1a2333','#0c121c'] },
+  ];
+  function currentCue(){ return CUE_SKINS.find(c=>c.id===save.selected) || CUE_SKINS[0]; }
+  function cueLevel(id){ return save.levels[id] || 1; }
+  function upgradeCost(id){ return 60 * cueLevel(id); }
+  function powerMultiplier(){ return 1 + (cueLevel(save.selected)-1) * 0.05; }
+
+  const TABLE_SKINS = [
+    { id:'classic', name:'Classic Green', desc:'The house table — always free', price:0, felt:['#18c987','#0a6b47'] },
+    { id:'royal', name:'Royal Blue', desc:'Deep blue tournament cloth', price:200, felt:['#3f8bf0','#1a4c9e'] },
+    { id:'sunset', name:'Sunset Orange', desc:'Warm orange show table', price:220, felt:['#ff9a4d','#c85a1a'] },
+    { id:'midnight', name:'Midnight Purple', desc:'Rich purple velvet finish', price:260, felt:['#b06bff','#5a2ca8'] },
+  ];
+  function currentTable(){ return TABLE_SKINS.find(t=>t.id===save.tableSelected) || TABLE_SKINS[0]; }
+
+  const MISSIONS = [
+    { id:'pot20', label:'Pot 20 balls', metric:'potted', target:20, reward:300 },
+    { id:'pot60', label:'Pot 60 balls', metric:'potted', target:60, reward:700 },
+    { id:'win3', label:'Win 3 frames', metric:'won', target:3, reward:500 },
+    { id:'play5', label:'Play 5 frames', metric:'played', target:5, reward:250 },
+  ];
+  function missionsAvailable(){ return MISSIONS.some(m => save.stats[m.metric] >= m.target && !save.missionsClaimed.includes(m.id)); }
+  function nextMission(){ return MISSIONS.find(m => !save.missionsClaimed.includes(m.id)) || MISSIONS[0]; }
+
+  const DAILY_REWARDS = [100,150,200,250,300,400,600];
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function yesterdayStr(){ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+  function canClaimDaily(){ return save.daily.lastClaim !== todayStr(); }
+
+  // ---------------- SOUND ----------------
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!save.settings.sound) return null;
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }catch(e){ return null; }
+  }
+  function playTone(freq, dur, type, gainAmt){
+    const ctxA = ensureAudio(); if(!ctxA) return;
+    const osc = ctxA.createOscillator(); const gain = ctxA.createGain();
+    osc.type = type || 'sine'; osc.frequency.value = freq; gain.gain.value = gainAmt || 0.12;
+    osc.connect(gain); gain.connect(ctxA.destination); osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, ctxA.currentTime + dur);
+    osc.stop(ctxA.currentTime + dur);
+  }
+  function sfxShoot(){ playTone(180, 0.08, 'square', 0.08); }
+  function sfxPot(){ playTone(660, 0.12, 'sine', 0.14); setTimeout(()=>playTone(880,0.12,'sine',0.1),60); }
+  function sfxFoul(){ playTone(140, 0.28, 'sawtooth', 0.1); }
+  function sfxClaim(){ playTone(520,0.1,'sine',0.12); setTimeout(()=>playTone(780,0.14,'sine',0.12),90); setTimeout(()=>playTone(1040,0.16,'sine',0.1),180); }
+
+  // ============ LOBBY RENDERING ============
+  function updateWallet(){
+    const lvl = playerLevel();
+    lbCoinVal.textContent = save.coins;
+    lbGemVal.textContent = save.gems;
+    lbLevel.textContent = lvl;
+    lbPassLevel.textContent = lvl;
+    const prevXp = xpForLevel(lvl-1), nextXp = xpForLevel(lvl);
+    const pct = Math.max(0, Math.min(100, ((save.xp-prevXp)/(nextXp-prevXp))*100));
+    lbXpFill.style.width = pct + '%';
+    lbPassFill.style.width = pct + '%';
+    lbPlayerName.textContent = (typeof names !== 'undefined' && names[0]) ? names[0] : 'Player 1';
+    lbCueCount.textContent = save.owned.length + '/' + CUE_SKINS.length;
+    lbBestBreak.textContent = save.stats.bestBreak;
+    lbFramesWon.textContent = save.stats.won;
+    lbFramesPlayed.textContent = save.stats.played;
+
+    const m = nextMission();
+    lbEventLabel.textContent = m.label;
+    const prog = Math.min(m.target, save.stats[m.metric]||0);
+    lbEventCount.textContent = prog + '/' + m.target;
+    lbEventFill.style.width = (prog/m.target*100) + '%';
+    lbEventReward.textContent = m.reward + ' 🪙';
+
+    lbGiftDot.hidden = !canClaimDaily();
+    lbPiggyText.textContent = save.coins > 0 ? (save.coins + ' coins ready to spend') : 'Visit the shop';
+
+    renderChests();
+  }
+
+  function renderChests(){
+    lbChestRow.innerHTML = '';
+    const streak = save.daily.streak || 0;
+    for(let i=0;i<4;i++){
+      const dayIdx = streak + i + 1;
+      const rewardIdx = ((dayIdx-1) % 7);
+      const cell = document.createElement('div');
+      cell.className = 'lb-chest' + (i===0 && canClaimDaily() ? ' claimable' : '');
+      cell.innerHTML = `<span class="ico">🎁</span><span class="day">Day ${dayIdx}</span><span class="amt">${DAILY_REWARDS[rewardIdx]} 🪙</span>`;
+      cell.addEventListener('click', ()=>{ renderDaily(); showScreen(dailyScreen); });
+      lbChestRow.appendChild(cell);
+    }
+  }
+
+  function renderCueList(){
+    cueList.innerHTML = '';
+    CUE_SKINS.forEach(c=>{
+      const owned = save.owned.includes(c.id);
+      const level = cueLevel(c.id);
+      const item = document.createElement('div');
+      item.className = 'cue-item' + (save.selected===c.id ? ' selected' : '');
+      const head = document.createElement('div');
+      head.className = 'cue-item-head';
+      head.innerHTML = `<span class="cue-item-name">${c.name}</span><span class="cue-level-pill">LV ${level}/${MAX_CUE_LEVEL}</span>`;
+      const preview = document.createElement('div');
+      preview.className = 'cue-shaft-preview';
+      preview.style.background = `linear-gradient(90deg, ${c.grain[0]}, ${c.grain[1]}, ${c.grain[2]})`;
+      const desc = document.createElement('div');
+      desc.className = 'cue-item-desc';
+      desc.textContent = owned ? c.desc : ('Unlock for ' + c.price + ' coins');
+      const stats = document.createElement('div');
+      stats.className = 'cue-stats';
+      const force = Math.min(100, 40 + level*12);
+      const aim = Math.min(100, 55 + level*9);
+      const spin = Math.min(100, 30 + level*14);
+      [['Force',force],['Aim',aim],['Spin',spin]].forEach(([lbl,val])=>{
+        const row = document.createElement('div');
+        row.className = 'cue-stat-row';
+        row.innerHTML = `<span class="lbl">${lbl}</span><span class="cue-stat-track"><span class="cue-stat-fill" style="width:${val}%"></span></span>`;
+        stats.appendChild(row);
+      });
+      const foot = document.createElement('div');
+      foot.className = 'cue-item-foot';
+      const btn = document.createElement('button');
+      btn.className = 'cue-select-btn' + (owned ? '' : ' secondary');
+      if(!owned){
+        btn.textContent = 'Unlock · ' + c.price + ' 🪙';
+        btn.disabled = save.coins < c.price;
+        btn.addEventListener('click', ()=>{
+          if(save.coins < c.price) return;
+          save.coins -= c.price; save.owned.push(c.id); save.selected = c.id; save.levels[c.id] = 1;
+          persistSave(); renderCueList(); updateWallet();
+        });
+      } else if(save.selected===c.id){
+        btn.textContent = 'Equipped'; btn.disabled = true;
+      } else {
+        btn.textContent = 'Equip';
+        btn.addEventListener('click', ()=>{ save.selected = c.id; persistSave(); renderCueList(); });
+      }
+      foot.appendChild(btn);
+      if(owned && level < MAX_CUE_LEVEL){
+        const cost = upgradeCost(c.id);
+        const upBtn = document.createElement('button');
+        upBtn.className = 'cue-select-btn secondary';
+        upBtn.textContent = 'Upgrade · ' + cost + ' 🪙';
+        upBtn.disabled = save.coins < cost;
+        upBtn.addEventListener('click', ()=>{
+          if(save.coins < cost) return;
+          save.coins -= cost; save.levels[c.id] = level + 1;
+          persistSave(); renderCueList(); updateWallet();
+        });
+        foot.appendChild(upBtn);
+      }
+      item.appendChild(head); item.appendChild(preview); item.appendChild(desc);
+      item.appendChild(stats); item.appendChild(foot);
+      cueList.appendChild(item);
+    });
+  }
+
+  function renderTableList(){
+    tableList.innerHTML = '';
+    TABLE_SKINS.forEach(t=>{
+      const owned = save.tableOwned.includes(t.id);
+      const item = document.createElement('div');
+      item.className = 'cue-item' + (save.tableSelected===t.id ? ' selected' : '');
+      const head = document.createElement('div');
+      head.className = 'cue-item-head';
+      head.innerHTML = `<span class="cue-item-name">${t.name}</span>`;
+      const preview = document.createElement('div');
+      preview.className = 'cue-shaft-preview';
+      preview.style.height = '28px';
+      preview.style.background = `linear-gradient(90deg, ${t.felt[0]}, ${t.felt[1]})`;
+      const desc = document.createElement('div');
+      desc.className = 'cue-item-desc';
+      desc.textContent = owned ? t.desc : ('Unlock for ' + t.price + ' coins');
+      const foot = document.createElement('div');
+      foot.className = 'cue-item-foot';
+      const btn = document.createElement('button');
+      btn.className = 'cue-select-btn' + (owned ? '' : ' secondary');
+      if(!owned){
+        btn.textContent = 'Unlock · ' + t.price + ' 🪙';
+        btn.disabled = save.coins < t.price;
+        btn.addEventListener('click', ()=>{
+          if(save.coins < t.price) return;
+          save.coins -= t.price; save.tableOwned.push(t.id); save.tableSelected = t.id;
+          persistSave(); renderTableList(); updateWallet();
+        });
+      } else if(save.tableSelected===t.id){
+        btn.textContent = 'In Use'; btn.disabled = true;
+      } else {
+        btn.textContent = 'Use';
+        btn.addEventListener('click', ()=>{ save.tableSelected = t.id; persistSave(); renderTableList(); });
+      }
+      foot.appendChild(btn);
+      item.appendChild(head); item.appendChild(preview); item.appendChild(desc); item.appendChild(foot);
+      tableList.appendChild(item);
+    });
+  }
+
+  function renderMissionList(){
+    missionList.innerHTML = '';
+    MISSIONS.forEach(m=>{
+      const progress = Math.min(m.target, save.stats[m.metric] || 0);
+      const claimed = save.missionsClaimed.includes(m.id);
+      const canClaim = progress >= m.target && !claimed;
+      const item = document.createElement('div');
+      item.className = 'cue-item';
+      const head = document.createElement('div');
+      head.className = 'cue-item-head';
+      head.innerHTML = `<span class="cue-item-name">${m.label}</span><span class="cue-level-pill">${progress}/${m.target}</span>`;
+      const track = document.createElement('div');
+      track.className = 'cue-stat-track';
+      track.style.height = '7px';
+      track.innerHTML = `<span class="cue-stat-fill" style="width:${(progress/m.target)*100}%"></span>`;
+      const foot = document.createElement('div');
+      foot.className = 'cue-item-foot';
+      const btn = document.createElement('button');
+      btn.className = 'cue-select-btn' + (canClaim ? '' : ' secondary');
+      btn.textContent = claimed ? 'Claimed' : ('Claim · ' + m.reward + ' 🪙');
+      btn.disabled = !canClaim;
+      btn.addEventListener('click', ()=>{
+        if(!canClaim) return;
+        save.missionsClaimed.push(m.id);
+        addRewards(m.reward, 1, m.reward);
+        sfxClaim();
+        renderMissionList();
+      });
+      foot.appendChild(btn);
+      item.appendChild(head); item.appendChild(track); item.appendChild(foot);
+      missionList.appendChild(item);
+    });
+  }
+
+  function renderDaily(){
+    dayStrip.innerHTML = '';
+    const streak = save.daily.streak || 0;
+    for(let i=0;i<7;i++){
+      const cell = document.createElement('div');
+      const dayIdx = i+1;
+      let cls = 'day-cell';
+      if(dayIdx <= streak) cls += ' done';
+      else if(dayIdx === streak+1 && canClaimDaily()) cls += ' today';
+      cell.className = cls;
+      cell.innerHTML = `<span>Day ${dayIdx}</span><span class="dc-coin">🪙</span><span>${DAILY_REWARDS[i]}</span>`;
+      dayStrip.appendChild(cell);
+    }
+    if(canClaimDaily()){
+      dailyStatusText.textContent = 'Day ' + (Math.min(streak+1,7)) + ' reward is ready to claim!';
+      claimDailyBtn.disabled = false;
+    } else {
+      dailyStatusText.textContent = 'Come back tomorrow for your next reward.';
+      claimDailyBtn.disabled = true;
+    }
+  }
+  claimDailyBtn.addEventListener('click', ()=>{
+    if(!canClaimDaily()) return;
+    if(save.daily.lastClaim === yesterdayStr()) save.daily.streak = Math.min(7, save.daily.streak + 1);
+    else save.daily.streak = 1;
+    const reward = DAILY_REWARDS[save.daily.streak-1];
+    save.daily.lastClaim = todayStr();
+    addRewards(reward, 1, reward);
+    sfxClaim();
+    renderDaily();
+  });
+
+  function renderStats(){
+    document.getElementById('statPlayed').textContent = save.stats.played;
+    document.getElementById('statWon').textContent = save.stats.won;
+    document.getElementById('statWinRate').textContent = save.stats.played ? Math.round(save.stats.won/save.stats.played*100)+'%' : '0%';
+    document.getElementById('statBestBreak').textContent = save.stats.bestBreak;
+    document.getElementById('statPotted').textContent = save.stats.potted;
+    document.getElementById('statLevel').textContent = playerLevel();
+    [...soundSeg.children].forEach(b=>b.classList.toggle('active', (b.dataset.sound==='on')===save.settings.sound));
+  }
+  soundSeg.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    save.settings.sound = btn.dataset.sound === 'on';
+    persistSave(); renderStats();
+  });
+
+  // ============ SCREEN NAV ============
+  const ALL_SCREENS = [lobbyScreen, cuesScreen, tablesScreen, missionsScreen, dailyScreen, statsScreen, menuScreen, gameScreen];
+  function showScreen(el){ ALL_SCREENS.forEach(s=>{ s.hidden = (s!==el); }); if(el===lobbyScreen) updateWallet(); }
+
+  lbCuesBtn.addEventListener('click', ()=>{ renderCueList(); showScreen(cuesScreen); });
+  lbShopBtn.addEventListener('click', ()=>{ renderTableList(); showScreen(tablesScreen); });
+  lbFreeBtn.addEventListener('click', ()=>{ renderDaily(); showScreen(dailyScreen); });
+  lbLeaderBtn.addEventListener('click', ()=>{ renderStats(); showScreen(statsScreen); });
+  lbSettingsBtn.addEventListener('click', ()=>{ renderStats(); showScreen(statsScreen); });
+  lbPassBtn.addEventListener('click', ()=>{ renderMissionList(); showScreen(missionsScreen); });
+  lbEventBtn.addEventListener('click', ()=>{ renderMissionList(); showScreen(missionsScreen); });
+  lbPlayNowBtn.addEventListener('click', ()=>showScreen(menuScreen));
+  lbInfoBtn.addEventListener('click', ()=>{ rulesOverlay.hidden = false; });
+  lbGiftBtn.addEventListener('click', ()=>{ renderDaily(); showScreen(dailyScreen); });
+  lbFriendsBtn.addEventListener('click', ()=>selectMode(2));
+  lbRulesBtn.addEventListener('click', ()=>{ rulesOverlay.hidden = false; });
+  lbPiggyBtn.addEventListener('click', ()=>{ renderTableList(); showScreen(tablesScreen); });
+
+  cuesBackBtn.addEventListener('click', ()=>showScreen(lobbyScreen));
+  tablesBackBtn.addEventListener('click', ()=>showScreen(lobbyScreen));
+  missionsBackBtn.addEventListener('click', ()=>showScreen(lobbyScreen));
+  dailyBackBtn.addEventListener('click', ()=>showScreen(lobbyScreen));
+  statsBackBtn.addEventListener('click', ()=>showScreen(lobbyScreen));
+  menuBackBtn.addEventListener('click', ()=>showScreen(lobbyScreen));
+
+  const modeSeg = document.getElementById('modeSeg');
+  const diffSeg = document.getElementById('diffSeg');
+  const p2NameBox = document.getElementById('p2NameBox');
+  const p1NameInput = document.getElementById('p1Name');
+  const p2NameInput = document.getElementById('p2Name');
+  const startBtn = document.getElementById('startBtn');
+
+  const p1Label = document.getElementById('p1Label');
+  const p2Label = document.getElementById('p2Label');
+  const p1Score = document.getElementById('p1Score');
+  const p2Score = document.getElementById('p2Score');
+  const p1Card = document.getElementById('p1Card');
+  const p2Card = document.getElementById('p2Card');
+  const p1Pips = document.getElementById('p1Pips');
+  const p2Pips = document.getElementById('p2Pips');
+  const breakVal = document.getElementById('breakVal');
+  const redsVal = document.getElementById('redsVal');
+  const targetName = document.getElementById('targetName');
+  const targetSwatch = document.getElementById('targetSwatch');
+  const msg = document.getElementById('msg');
+  const powerFillEl = document.getElementById('powerFillEl');
+
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const quitBtn = document.getElementById('quitBtn');
+  const rulesOverlay = document.getElementById('rulesOverlay');
+  const closeRulesBtn = document.getElementById('closeRulesBtn');
+  const rulesSideBtn = document.getElementById('rulesSideBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const homeBtn = document.getElementById('homeBtn');
+  const restartSideBtn = document.getElementById('restartSideBtn');
+  const endOverlay = document.getElementById('endOverlay');
+  const endTitle = document.getElementById('endTitle');
+  const endLine = document.getElementById('endLine');
+  const endBadge = document.getElementById('endBadge');
+  const endStars = document.getElementById('endStars');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+  const menuBtn = document.getElementById('menuBtn');
+
+  const PIP_ORDER = ['yellow','green','brown','blue','pink','black'];
+  const PIP_COLORS = { yellow:'#f2c318', green:'#1e7d4a', brown:'#7a4426', blue:'#1b4fa0', pink:'#e07aa8', black:'#141414' };
+  function buildPips(container){
+    container.innerHTML = '';
+    PIP_ORDER.forEach(name=>{
+      const i = document.createElement('i');
+      i.style.background = PIP_COLORS[name]; i.dataset.name = name;
+      container.appendChild(i);
+    });
+  }
+  buildPips(p1Pips); buildPips(p2Pips);
+
+  const canvas = document.getElementById('table');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const CUSHION = 24;
+  const POCKET_R = 26;
+  const BALL_R = 14.5;
+
+  const DIFF = {
+    easy:   { friction:0.994, cushion:0.80, aidLine:true  },
+    pro:    { friction:0.991, cushion:0.87, aidLine:true  },
+    master: { friction:0.988, cushion:0.93, aidLine:false }
+  };
+  const COLORS = { cue:'#f5f1e6', red:'#c0272d', yellow:'#f2c318', green:'#1e7d4a', brown:'#7a4426', blue:'#1b4fa0', pink:'#e07aa8', black:'#141414' };
+  const COLOR_VALUE = { red:1, yellow:2, green:3, brown:4, blue:5, pink:6, black:7 };
+  const COLOR_ORDER = ['yellow','green','brown','blue','pink','black'];
+
+  const pockets = [
+    {x:CUSHION, y:CUSHION}, {x:W/2, y:CUSHION-4}, {x:W-CUSHION, y:CUSHION},
+    {x:CUSHION, y:H-CUSHION}, {x:W/2, y:H-CUSHION+4}, {x:W-CUSHION, y:H-CUSHION}
+  ];
+  const spots = {
+    yellow:{x:W*0.33,y:H*0.78}, green:{x:W*0.33,y:H*0.22}, brown:{x:W*0.33,y:H*0.5},
+    blue:{x:W*0.5,y:H*0.5}, pink:{x:W*0.72,y:H*0.5}, black:{x:W*0.88,y:H*0.5}
+  };
+
+  // ---- The D: the semicircle behind the baulk line where the cue ball must
+  // be placed after it's potted (ball in hand), matching the same geometry
+  // already used to draw the baulk line and D arc on the table. ----
+  const BAULK_X = W*0.28;
+  const D_RADIUS = 45;
+  function isLegalDPlacement(x, y, cueBall){
+    if(x - BALL_R < CUSHION || x + BALL_R > W - CUSHION) return false;
+    if(y - BALL_R < CUSHION || y + BALL_R > H - CUSHION) return false;
+    if(x > BAULK_X + 0.5) return false; // must stay on the baulk side, inside the D
+    if(Math.hypot(x - BAULK_X, y - H/2) > D_RADIUS) return false;
+    for(const b of balls){
+      if(b === cueBall || b.potted) continue;
+      if(Math.hypot(x - b.x, y - b.y) < BALL_R*2) return false;
+    }
+    return true;
+  }
+
+  // ---- Computer opponent (House): in Solo mode, player 1 is a real AI that
+  // aims via a ghost-ball pocket calculation and fires its own shot after a
+  // short "thinking" delay, instead of just being a placeholder turn. ----
+  let aiPending = false;
+  function maybeScheduleAI(){
+    if(mode!==1 || currentPlayer!==1 || frameOver || paused || aiPending) return;
+    aiPending = true;
+    setMsg('House is thinking…', 'info');
+    setTimeout(()=>{
+      aiPending = false;
+      if(mode!==1 || currentPlayer!==1 || frameOver || paused) return;
+      if(!allStopped()){ maybeScheduleAI(); return; }
+      aiTakeTurn();
+    }, 950 + Math.random()*650);
+  }
+  function aiPickTarget(cue){
+    const legalKinds = phase==='reds'
+      ? (expectRed ? ['red'] : Object.keys(COLOR_VALUE).filter(k=>k!=='red'))
+      : [COLOR_ORDER[colorSequenceIdx]];
+    const candidates = balls.filter(b=>!b.potted && !b.cue && legalKinds.includes(b.kind));
+    if(!candidates.length) return null;
+    let best=null, bestPocket=null, bestScore=Infinity;
+    candidates.forEach(b=>{
+      pockets.forEach(p=>{
+        const tpx = p.x-b.x, tpy = p.y-b.y;
+        const distPocket = Math.hypot(tpx,tpy) || 1;
+        const ghost = { x: b.x - (tpx/distPocket)*BALL_R*2, y: b.y - (tpy/distPocket)*BALL_R*2 };
+        const gcx = ghost.x-cue.x, gcy = ghost.y-cue.y;
+        const distCue = Math.hypot(gcx,gcy) || 1;
+        const cosA = (gcx*tpx + gcy*tpy) / (distCue*distPocket);
+        const cutAngle = Math.acos(Math.max(-1,Math.min(1,cosA)));
+        if(cutAngle > Math.PI*0.42) return; // too thin a cut — skip this pocket
+        const score = cutAngle*140 + distCue*0.45 + distPocket*0.2;
+        if(score < bestScore){ bestScore=score; best=b; bestPocket=p; }
+      });
+    });
+    if(!best){
+      best = candidates.reduce((a,c)=> Math.hypot(c.x-cue.x,c.y-cue.y) < Math.hypot(a.x-cue.x,a.y-cue.y) ? c : a);
+      bestPocket = pockets.reduce((a,p)=> Math.hypot(p.x-best.x,p.y-best.y) < Math.hypot(a.x-best.x,a.y-best.y) ? p : a);
+    }
+    return { ball:best, pocket:bestPocket };
+  }
+  function fireAiShot(pct){
+    const cue = getCue(); if(!cue) return;
+    const power = Math.max(0.12, Math.min(1, pct)) * 46 * powerMultiplier();
+    cue.vx = Math.cos(lastAngle)*power; cue.vy = Math.sin(lastAngle)*power;
+    firstHitThisShot = null; potsThisShot = []; shotInFlight = true; shotWatchdogAt = performance.now();
+    setMsg('', 'info');
+    sfxShoot();
+  }
+  function aiTakeTurn(){
+    if(mode!==1 || currentPlayer!==1 || frameOver || paused) return;
+    const cue = getCue(); if(!cue) return;
+    if(ballInHand){
+      const spot = { x: Math.max(CUSHION+BALL_R, BAULK_X-16), y: H/2 };
+      if(isLegalDPlacement(spot.x, spot.y, cue)){ cue.x = spot.x; cue.y = spot.y; }
+      else {
+        for(let dy=-D_RADIUS; dy<=D_RADIUS; dy+=8){
+          const y = H/2+dy;
+          if(isLegalDPlacement(BAULK_X-16, y, cue)){ cue.x = BAULK_X-16; cue.y = y; break; }
+        }
+      }
+      ballInHand = false;
+    }
+    const pick = aiPickTarget(cue);
+    if(!pick){ lastAngle = Math.random()*Math.PI*2; fireAiShot(0.28); return; }
+    const { ball: target, pocket } = pick;
+    const tpx = pocket.x-target.x, tpy = pocket.y-target.y;
+    const distPocket = Math.hypot(tpx,tpy) || 1;
+    const aimPt = { x: target.x - (tpx/distPocket)*BALL_R*2, y: target.y - (tpy/distPocket)*BALL_R*2 };
+    let ang = Math.atan2(aimPt.y-cue.y, aimPt.x-cue.x);
+    const inaccuracy = difficulty==='master' ? 0.010 : difficulty==='pro' ? 0.032 : 0.065;
+    ang += (Math.random()*2-1) * inaccuracy;
+    lastAngle = ang;
+    const dist = Math.hypot(target.x-cue.x, target.y-cue.y);
+    const pct = Math.max(0.38, Math.min(0.92, 0.4 + dist/950));
+    fireAiShot(pct);
+  }
+
+  let mode = 1, difficulty = 'pro';
+  let names = ['Player 1','Player 2'];
+  updateWallet();
+  let scores = [0,0];
+  let currentPlayer = 0;
+  let currentBreak = 0;
+  let phase = 'reds';
+  let colorSequenceIdx = 0;
+  let expectRed = true;
+  let balls = [];
+  let paused = false;
+  let frameOver = false;
+  let ballOnCushionCoeff = DIFF.pro.cushion;
+  let frictionCoeff = DIFF.pro.friction;
+  let showAidLine = true;
+  let firstHitThisShot = null;
+  let potsThisShot = [];
+  let shotInFlight = false;
+  let shotWatchdogAt = 0;
+
+  function selectMode(m){
+    [...modeSeg.children].forEach(b=>b.classList.toggle('active', Number(b.dataset.mode)===m));
+    mode = m; p2NameBox.hidden = mode !== 2;
+    showScreen(menuScreen);
+  }
+  modeSeg.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    [...modeSeg.children].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = Number(btn.dataset.mode); p2NameBox.hidden = mode !== 2;
+  });
+  lbPracticeBtn.addEventListener('click', ()=>selectMode(1));
+  lbRivalsBtn.addEventListener('click', ()=>selectMode(2));
+  diffSeg.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    [...diffSeg.children].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); difficulty = btn.dataset.diff;
+  });
+
+  startBtn.addEventListener('click', ()=>{
+    names[0] = (p1NameInput.value || 'Player 1').trim().slice(0,14);
+    names[1] = mode===2 ? (p2NameInput.value || 'Player 2').trim().slice(0,14) : 'House';
+    p1Label.textContent = names[0].toUpperCase();
+    p2Label.textContent = mode===2 ? names[1].toUpperCase() : 'BEST BREAK';
+    const d = DIFF[difficulty];
+    frictionCoeff = d.friction; ballOnCushionCoeff = d.cushion; showAidLine = d.aidLine;
+    showScreen(gameScreen);
+    document.body.classList.add('in-game');
+    try{ screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(()=>{}); }catch(e){}
+    rackBalls();
+    loopStarted || startLoop();
+  });
+
+  function rackBalls(){
+    balls = [];
+    balls.push({ x: W*0.25, y: H/2, vx:0, vy:0, color: COLORS.cue, r: BALL_R, cue:true, potted:false, kind:'cue' });
+    const startX = W*0.62, startY = H/2;
+    let id = 0;
+    for(let row=0; row<5; row++){
+      for(let i=0; i<=row; i++){
+        const x = startX + row * (BALL_R*1.8);
+        const y = startY - row*BALL_R + i*BALL_R*2;
+        balls.push({x,y,vx:0,vy:0,color:COLORS.red, r:BALL_R, cue:false, potted:false, kind:'red', id:'r'+(id++)});
+      }
+    }
+    Object.keys(spots).forEach(name=>{
+      balls.push({x:spots[name].x,y:spots[name].y,vx:0,vy:0,color:COLORS[name],r:BALL_R,cue:false,potted:false,kind:name});
+    });
+    scores = [0,0]; currentPlayer = 0; currentBreak = 0;
+    phase = 'reds'; expectRed = true; colorSequenceIdx = 0; frameOver = false;
+    ballInHand = true; // the breaking player places the cue ball anywhere in the D
+    updateHud();
+    setMsg(names[0] + ' to break — place the cue ball in the D, then aim for a RED', 'info');
+  }
+
+  function redsRemaining(){ return balls.filter(b=>b.kind==='red' && !b.potted).length; }
+
+  function updateHud(){
+    p1Score.textContent = scores[0];
+    p2Score.textContent = scores[1];
+    breakVal.textContent = currentBreak;
+    redsVal.textContent = redsRemaining();
+    p1Card.classList.toggle('active', currentPlayer===0);
+    p2Card.classList.toggle('active', currentPlayer===1);
+    const clearedIdx = phase==='colors' ? colorSequenceIdx : -1;
+    [p1Pips, p2Pips].forEach(container=>{
+      [...container.children].forEach((i,idx)=>{ i.classList.toggle('done', idx < clearedIdx); });
+    });
+    let label, colorHex;
+    if(phase === 'reds'){
+      if(expectRed){ label='RED'; colorHex=COLORS.red; } else { label='ANY COLOUR'; colorHex=COLORS.yellow; }
+    } else {
+      const c = COLOR_ORDER[colorSequenceIdx];
+      label = c ? c.toUpperCase() : 'BLACK';
+      colorHex = COLORS[c] || COLORS.black;
+    }
+    targetName.textContent = label;
+    targetSwatch.style.background = colorHex;
+  }
+  function setMsg(t, cls){ msg.textContent = t || ' '; msg.className = 'msg-inline ' + (cls||'info'); }
+
+  function drawTable(){
+    ctx.clearRect(0,0,W,H);
+    const tableSkin = currentTable();
+
+    // felt base: directional light from top-left, darker toward the rails,
+    // instead of a flat centered glow — reads much more like real cloth
+    const g = ctx.createRadialGradient(W*0.35,H*0.3,40,W*0.5,H*0.55,W*0.85);
+    g.addColorStop(0, mix(tableSkin.felt[0],'#ffffff',0.12));
+    g.addColorStop(0.45, tableSkin.felt[0]);
+    g.addColorStop(1, mix(tableSkin.felt[1],'#000000',0.15));
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    // subtle woven-cloth texture: two crossed sets of faint fine lines
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    ctx.strokeStyle = '#000000'; ctx.lineWidth = 1;
+    for(let x=-H; x<W; x+=5){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x+H,H); ctx.stroke();
+    }
+    ctx.restore();
+
+    // gentle vignette so the rails read darker than the middle of the cloth
+    const vg = ctx.createRadialGradient(W/2,H/2,W*0.3,W/2,H/2,W*0.62);
+    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.28)');
+    ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(W*0.28,CUSHION); ctx.lineTo(W*0.28,H-CUSHION); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W*0.28,H/2,45,Math.PI*0.5,Math.PI*1.5); ctx.stroke();
+
+    // cushions: give them a rounded, lit-from-above look instead of a flat ring
+    const cushionGrad = ctx.createLinearGradient(0,0,0,CUSHION);
+    cushionGrad.addColorStop(0,'rgba(0,0,0,0.55)');
+    cushionGrad.addColorStop(1,'rgba(0,0,0,0.15)');
+    ctx.save();
+    ctx.strokeStyle = cushionGrad; ctx.lineWidth = 7;
+    ctx.strokeRect(CUSHION,CUSHION,W-CUSHION*2,H-CUSHION*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(CUSHION+4,CUSHION+4,W-CUSHION*2-8,H-CUSHION*2-8);
+    ctx.restore();
+
+    pockets.forEach(p=>{
+      const pg = ctx.createRadialGradient(p.x-2,p.y-2,1,p.x,p.y,POCKET_R);
+      pg.addColorStop(0,'#2a2a2a'); pg.addColorStop(0.4,'#0a0a0a'); pg.addColorStop(1,'#000000');
+      ctx.fillStyle = pg;
+      ctx.beginPath(); ctx.arc(p.x,p.y,POCKET_R,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x,p.y,POCKET_R+1.5,0,Math.PI*2); ctx.stroke();
+    });
+  }
+
+  function hexToRgb(hex){
+    hex = hex.replace('#',''); if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+    const n = parseInt(hex,16); return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+  }
+  function mix(hex,hex2,amt){
+    const c1=hexToRgb(hex), c2=hexToRgb(hex2);
+    return `rgb(${Math.round(c1.r+(c2.r-c1.r)*amt)},${Math.round(c1.g+(c2.g-c1.g)*amt)},${Math.round(c1.b+(c2.b-c1.b)*amt)})`;
+  }
+  function drawBalls(){
+    balls.forEach(b=>{
+      if(b.potted) return;
+
+      // soft contact shadow on the cloth, slightly offset like the light
+      // source is up and to the left
+      ctx.beginPath();
+      ctx.ellipse(b.x+b.r*0.12, b.y+b.r*0.62, b.r*0.95, b.r*0.38, 0, 0, Math.PI*2);
+      const shadowGrad = ctx.createRadialGradient(b.x,b.y+b.r*0.6,0, b.x,b.y+b.r*0.6,b.r*0.95);
+      shadowGrad.addColorStop(0,'rgba(0,0,0,0.45)'); shadowGrad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = shadowGrad; ctx.fill();
+
+      // main sphere: darker core, bright off-center specular, dark rim —
+      // a tighter, higher-contrast gradient reads as glossy plastic instead
+      // of a flat tinted disc
+      const grad = ctx.createRadialGradient(b.x-b.r*0.4,b.y-b.r*0.45,b.r*0.05, b.x,b.y,b.r*1.05);
+      grad.addColorStop(0, mix(b.color,'#ffffff',0.7));
+      grad.addColorStop(0.28, mix(b.color,'#ffffff',0.18));
+      grad.addColorStop(0.62, b.color);
+      grad.addColorStop(0.88, mix(b.color,'#000000',0.35));
+      grad.addColorStop(1, mix(b.color,'#000000',0.6));
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.fillStyle = grad; ctx.fill();
+
+      // crisp specular highlight — the small bright dot that sells "glossy"
+      ctx.beginPath();
+      ctx.ellipse(b.x-b.r*0.38, b.y-b.r*0.42, b.r*0.28, b.r*0.18, -0.6, 0, Math.PI*2);
+      const specGrad = ctx.createRadialGradient(b.x-b.r*0.38,b.y-b.r*0.42,0, b.x-b.r*0.38,b.y-b.r*0.42,b.r*0.3);
+      specGrad.addColorStop(0,'rgba(255,255,255,0.95)'); specGrad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle = specGrad; ctx.fill();
+
+      // thin rim light on the lower-right edge, opposite the highlight
+      ctx.save();
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.clip();
+      ctx.beginPath();
+      ctx.arc(b.x+b.r*0.35, b.y+b.r*0.35, b.r*0.95, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.stroke();
+    });
+  }
+
+  let aiming=false, aimPoint=null;
+  let ballInHand = false; // true after the cue ball is potted — must be placed in the D
+  function getCue(){ return balls.find(b=>b.cue && !b.potted); }
+  function allStopped(){ return balls.every(b => Math.abs(b.vx) < 0.045 && Math.abs(b.vy) < 0.045); }
+  function canvasPos(evt){
+    const rect = canvas.getBoundingClientRect();
+    const sx = W/rect.width, sy = H/rect.height;
+    const cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    return { x:(cx-rect.left)*sx, y:(cy-rect.top)*sy };
+  }
+  // Dragging on the table normally only SETS THE AIM ANGLE — it never fires
+  // the shot on its own; firing is a separate press-and-hold on the power
+  // rail (see fireBtn below). While the cue ball is "in hand" (just potted),
+  // the same drag instead repositions the cue ball anywhere legal in the D.
+  function onDown(evt){
+    if(paused || frameOver || !allStopped() || charging) return;
+    if(mode===1 && currentPlayer===1) return; // House's turn — hands off the table
+    const cue = getCue(); if(!cue) return;
+    if(ballInHand){
+      const p = canvasPos(evt);
+      if(isLegalDPlacement(p.x, p.y, cue)){ cue.x = p.x; cue.y = p.y; }
+      evt.preventDefault();
+      return;
+    }
+    aiming = true; aimPoint = canvasPos(evt);
+    evt.preventDefault();
+  }
+  function onMove(evt){
+    const cue = getCue();
+    if(ballInHand){
+      if(!cue) return;
+      const p = canvasPos(evt);
+      if(isLegalDPlacement(p.x, p.y, cue)){ cue.x = p.x; cue.y = p.y; }
+      evt.preventDefault();
+      return;
+    }
+    if(!aiming) return;
+    aimPoint = canvasPos(evt);
+    if(cue){
+      const dx = cue.x - aimPoint.x, dy = cue.y - aimPoint.y;
+      if(Math.hypot(dx,dy) > 4) lastAngle = Math.atan2(dy,dx);
+    }
+    evt.preventDefault();
+  }
+  function endAim(){ aiming = false; aimPoint = null; }
+  canvas.addEventListener('pointerdown', (evt)=>{
+    try{ canvas.setPointerCapture(evt.pointerId); }catch(e){}
+    onDown(evt);
+  });
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerup', endAim);
+  canvas.addEventListener('pointercancel', endAim);
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', endAim);
+  canvas.addEventListener('touchstart', onDown, {passive:false});
+  canvas.addEventListener('touchmove', onMove, {passive:false});
+  canvas.addEventListener('touchend', endAim);
+  canvas.addEventListener('touchcancel', endAim);
+
+  // ---- Fire button: a real slider, not a timer. Press down anywhere on the
+  // power rail and drag up/down — the power level follows your finger
+  // directly (higher on the rail = more power), exactly like pulling a cue
+  // back further for a harder shot. Lift your finger to release the shot at
+  // whatever level you dragged to. ----
+  let charging = false, dragPct = 0;
+  const fireBtn = document.getElementById('fireBtn');
+  const powerTrackEl = document.querySelector('.power-track');
+  function currentChargePct(){ return charging ? dragPct : 0; }
+  function pctFromClientY(clientY){
+    // Top of the rail = no power; dragging further down = pulling the cue
+    // back further, so power grows the lower you drag — same feel as
+    // pulling a real cue stick back before releasing it forward.
+    const rect = powerTrackEl.getBoundingClientRect();
+    if(rect.height <= 0) return dragPct;
+    const pct = (clientY - rect.top) / rect.height;
+    return Math.max(0, Math.min(1, pct));
+  }
+  function startCharge(evt){
+    if(paused || frameOver || !allStopped()) return;
+    if(mode===1 && currentPlayer===1) return; // House's turn — hands off the table
+    const cue = getCue(); if(!cue) return;
+    ballInHand = false;
+    aiming = false; aimPoint = null;
+    charging = true;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    dragPct = pctFromClientY(clientY);
+    fireBtn.classList.add('charging');
+    if(evt.preventDefault) evt.preventDefault();
+  }
+  function moveCharge(evt){
+    if(!charging) return;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    dragPct = pctFromClientY(clientY);
+    if(evt.preventDefault) evt.preventDefault();
+  }
+  function releaseCharge(evt){
+    if(!charging) return;
+    const pct = dragPct;
+    charging = false;
+    fireBtn.classList.remove('charging');
+    powerFillEl.style.height = '0%';
+    const cue = getCue(); if(!cue) return;
+    if(pct > 0.03){
+      const power = pct * 46 * powerMultiplier();
+      cue.vx = Math.cos(lastAngle)*power; cue.vy = Math.sin(lastAngle)*power;
+      firstHitThisShot = null; potsThisShot = []; shotInFlight = true; shotWatchdogAt = performance.now();
+      setMsg('', 'info');
+      sfxShoot();
+      try{ navigator.vibrate && navigator.vibrate(Math.round(10 + power*2)); }catch(e){}
+    }
+    if(evt && evt.preventDefault) evt.preventDefault();
+  }
+  // Pointer Events unify mouse/touch/pen into one reliable stream (avoids the
+  // duplicate/ghost-event issues that plain touch+mouse listeners can cause
+  // on Android WebViews), with pointer capture so the drag keeps tracking
+  // even once the finger moves outside the button's own box.
+  fireBtn.addEventListener('contextmenu', (e)=>e.preventDefault());
+  fireBtn.addEventListener('pointerdown', (evt)=>{
+    try{ fireBtn.setPointerCapture(evt.pointerId); }catch(e){}
+    startCharge(evt);
+  });
+  fireBtn.addEventListener('pointermove', moveCharge);
+  fireBtn.addEventListener('pointerup', releaseCharge);
+  fireBtn.addEventListener('pointercancel', releaseCharge);
+  fireBtn.addEventListener('mousedown', startCharge);
+  window.addEventListener('mousemove', moveCharge);
+  window.addEventListener('mouseup', releaseCharge);
+  fireBtn.addEventListener('touchstart', startCharge, {passive:false});
+  fireBtn.addEventListener('touchmove', moveCharge, {passive:false});
+  fireBtn.addEventListener('touchend', releaseCharge, {passive:false});
+  fireBtn.addEventListener('touchcancel', releaseCharge, {passive:false});
+
+  function traceAimPath(cue, ang, totalLen){
+    const stepSize = 3;
+    const maxSteps = Math.ceil(totalLen / stepSize);
+    const points = [{x:cue.x, y:cue.y}];
+    let x = cue.x, y = cue.y;
+    let dirX = Math.cos(ang), dirY = Math.sin(ang);
+    let hitBall = null;
+    for(let i=0; i<maxSteps; i++){
+      const nx = x + dirX*stepSize, ny = y + dirY*stepSize;
+      let struck = null;
+      for(const b of balls){
+        if(b===cue || b.potted) continue;
+        if(Math.hypot(nx-b.x, ny-b.y) <= cue.r + b.r){ struck = b; break; }
+      }
+      if(struck){ points.push({x:nx, y:ny}); hitBall = struck; break; }
+      x = nx; y = ny;
+      let bounced = false;
+      if(x - cue.r <= CUSHION){ x = CUSHION + cue.r; dirX = -dirX; bounced = true; }
+      if(x + cue.r >= W-CUSHION){ x = W-CUSHION - cue.r; dirX = -dirX; bounced = true; }
+      if(y - cue.r <= CUSHION){ y = CUSHION + cue.r; dirY = -dirY; bounced = true; }
+      if(y + cue.r >= H-CUSHION){ y = H-CUSHION - cue.r; dirY = -dirY; bounced = true; }
+      if(bounced) points.push({x, y});
+    }
+    points.push({x, y});
+    return { points, ball: hitBall };
+  }
+
+  function drawBallInHandHint(){
+    if(!ballInHand) return;
+    const cue = getCue(); if(!cue) return;
+    ctx.save();
+    ctx.setLineDash([5,5]);
+    ctx.strokeStyle = 'rgba(255,204,77,0.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(BAULK_X, H/2, D_RADIUS, Math.PI*0.5, Math.PI*1.5);
+    ctx.stroke();
+    ctx.restore();
+
+    const legal = isLegalDPlacement(cue.x, cue.y, cue);
+    ctx.save();
+    ctx.strokeStyle = legal ? 'rgba(63,209,122,0.9)' : 'rgba(255,84,112,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cue.x, cue.y, cue.r+5, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  let lastAngle = Math.PI;
+
+  function drawAim(){
+    const cue = getCue(); if(!cue) return;
+
+    // While balls are still rolling, keep the stick off the table entirely.
+    if(!allStopped() || paused || frameOver) return;
+
+    const ang = lastAngle;
+    const pct = currentChargePct();
+    const pullBack = charging ? pct * 55 : (aiming ? 30 : 0);
+    powerFillEl.style.height = Math.round(pct*100) + '%';
+
+    if(showAidLine){
+      ctx.save();
+      ctx.setLineDash([6,6]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cue.x, cue.y);
+      ctx.lineTo(cue.x - Math.cos(ang)*60, cue.y - Math.sin(ang)*60);
+      ctx.stroke();
+      ctx.restore();
+
+      const path = traceAimPath(cue, ang, 900);
+      const pts = path.points;
+      const totalLen = pts.reduce((sum,p,i)=> i===0 ? 0 : sum + Math.hypot(p.x-pts[i-1].x, p.y-pts[i-1].y), 0);
+      ctx.save();
+      ctx.setLineDash([6,6]);
+      ctx.lineWidth = 1.5;
+      let travelled = 0;
+      for(let i=1; i<pts.length; i++){
+        const segLen = Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
+        const fade = Math.max(0, 1 - (travelled / Math.max(totalLen, 1)) * 0.85);
+        ctx.strokeStyle = `rgba(255,255,255,${(0.65*fade).toFixed(2)})`;
+        ctx.beginPath(); ctx.moveTo(pts[i-1].x, pts[i-1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+        travelled += segLen;
+      }
+      ctx.restore();
+
+      if(path.ball){
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,204,77,0.9)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(path.ball.x, path.ball.y, path.ball.r+4, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+
+        const p2 = pts[pts.length-2], p1 = pts[pts.length-1];
+        const onwardAng = Math.atan2(p1.y-p2.y, p1.x-p2.x);
+        const objPath = traceAimPath(path.ball, onwardAng, 260);
+        const objPts = objPath.points;
+        const objTotalLen = objPts.reduce((sum,p,i)=> i===0 ? 0 : sum + Math.hypot(p.x-objPts[i-1].x, p.y-objPts[i-1].y), 0);
+        ctx.save();
+        ctx.setLineDash([5,6]); ctx.lineWidth = 1.5;
+        let objTravelled = 0;
+        for(let i=1; i<objPts.length; i++){
+          const segLen = Math.hypot(objPts[i].x-objPts[i-1].x, objPts[i].y-objPts[i-1].y);
+          const fade = Math.max(0, 1 - (objTravelled / Math.max(objTotalLen, 1)) * 0.9);
+          ctx.strokeStyle = `rgba(255,204,77,${(0.75*fade).toFixed(2)})`;
+          ctx.beginPath(); ctx.moveTo(objPts[i-1].x, objPts[i-1].y); ctx.lineTo(objPts[i].x, objPts[i].y); ctx.stroke();
+          objTravelled += segLen;
+        }
+        ctx.restore();
+      }
+    }
+    drawCueStick(cue, ang, pullBack);
+    if(charging) drawPowerGauge(cue, pct);
+  }
+
+  function drawCueStick(cue, ang, dist){
+    const gap = 16 + dist*0.85;
+    const length = 250;
+    const dirX = Math.cos(ang), dirY = Math.sin(ang);
+    const perpX = -dirY, perpY = dirX;
+    const tipX = cue.x - dirX*gap, tipY = cue.y - dirY*gap;
+    const buttX = cue.x - dirX*(gap+length), buttY = cue.y - dirY*(gap+length);
+    const cueSkin = currentCue();
+    const wTip = 1.6, wFerrule = 2.2, wShaft = 4.4, wButt = 6.4;
+    const tFerrule = 10, tShaftStart = 16;
+    function pointAt(t, w){
+      const x = tipX - dirX*t, y = tipY - dirY*t;
+      return { x: x + perpX*w, y: y + perpY*w, x2: x - perpX*w, y2: y - perpY*w };
+    }
+    ctx.save();
+    ctx.save();
+    ctx.translate(3, 4);
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(buttX,buttY); ctx.stroke();
+    ctx.restore();
+
+    const pTip = pointAt(0, wTip);
+    const pFerruleEnd = pointAt(tFerrule, wFerrule);
+    const pShaftStart = pointAt(tShaftStart, wShaft);
+    const pButt = pointAt(length, wButt);
+
+    const grad = ctx.createLinearGradient(tipX, tipY, buttX, buttY);
+    grad.addColorStop(0, cueSkin.grain[0]);
+    grad.addColorStop(0.55, cueSkin.grain[1]);
+    grad.addColorStop(1, cueSkin.butt[1]);
+
+    ctx.beginPath();
+    ctx.moveTo(pFerruleEnd.x, pFerruleEnd.y);
+    ctx.lineTo(pShaftStart.x, pShaftStart.y);
+    ctx.lineTo(pButt.x, pButt.y);
+    ctx.lineTo(pButt.x2, pButt.y2);
+    ctx.lineTo(pShaftStart.x2, pShaftStart.y2);
+    ctx.lineTo(pFerruleEnd.x2, pFerruleEnd.y2);
+    ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,0.32)'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(tipX - perpX*0.6, tipY - perpY*0.6);
+    ctx.lineTo(buttX - perpX*2, buttY - perpY*2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(tipX + perpX*1.2, tipY + perpY*1.2);
+    ctx.lineTo(buttX + perpX*3.2, buttY + perpY*3.2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.moveTo(pButt.x, pButt.y); ctx.lineTo(pButt.x2, pButt.y2);
+    ctx.strokeStyle = cueSkin.butt[0]; ctx.lineWidth = 3; ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(pTip.x, pTip.y);
+    ctx.lineTo(pFerruleEnd.x, pFerruleEnd.y);
+    ctx.lineTo(pFerruleEnd.x2, pFerruleEnd.y2);
+    ctx.lineTo(pTip.x2, pTip.y2);
+    ctx.closePath();
+    ctx.fillStyle = '#f4ecd9'; ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, wTip + 1.4, 0, Math.PI*2);
+    ctx.fillStyle = '#274b7a'; ctx.fill();
+    ctx.restore();
+  }
+
+  // A single subtle ring around the cue ball that fills up as power charges.
+  // The one real power meter is the HOLD-TO-SHOOT button in the side rail —
+  // this ring is just a glance-down confirmation, not a second gauge.
+  function drawPowerGauge(cue, pct){
+    ctx.save();
+    ctx.strokeStyle = pct>0.75 ? '#e0433a' : pct>0.4 ? '#f2c318' : '#9fd6c2';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(cue.x, cue.y, cue.r+7, -Math.PI/2, -Math.PI/2 + pct*Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function step(){
+    if(paused || frameOver) return;
+    balls.forEach(b=>{
+      if(b.potted) return;
+      b.x += b.vx; b.y += b.vy;
+      b.vx *= frictionCoeff; b.vy *= frictionCoeff;
+      if(Math.abs(b.vx) < 0.045) b.vx = 0;
+      if(Math.abs(b.vy) < 0.045) b.vy = 0;
+      if(b.x - b.r < CUSHION){ b.x = CUSHION + b.r; b.vx *= -ballOnCushionCoeff; }
+      if(b.x + b.r > W-CUSHION){ b.x = W-CUSHION - b.r; b.vx *= -ballOnCushionCoeff; }
+      if(b.y - b.r < CUSHION){ b.y = CUSHION + b.r; b.vy *= -ballOnCushionCoeff; }
+      if(b.y + b.r > H-CUSHION){ b.y = H-CUSHION - b.r; b.vy *= -ballOnCushionCoeff; }
+    });
+    for(let i=0;i<balls.length;i++){
+      for(let j=i+1;j<balls.length;j++){
+        const a=balls[i], b=balls[j];
+        if(a.potted || b.potted) continue;
+        const dx=b.x-a.x, dy=b.y-a.y, dist=Math.hypot(dx,dy), minDist=a.r+b.r;
+        if(dist < minDist && dist > 0){
+          if(shotInFlight && firstHitThisShot===null && (a.cue || b.cue)){
+            firstHitThisShot = a.cue ? b.kind : a.kind;
+          }
+          const nx=dx/dist, ny=dy/dist, overlap=(minDist-dist)/2;
+          a.x -= nx*overlap; a.y -= ny*overlap;
+          b.x += nx*overlap; b.y += ny*overlap;
+          const kx=a.vx-b.vx, ky=a.vy-b.vy, p=(kx*nx+ky*ny);
+          a.vx -= p*nx; a.vy -= p*ny;
+          b.vx += p*nx; b.vy += p*ny;
+        }
+      }
+    }
+    balls.forEach(b=>{
+      if(b.potted) return;
+      pockets.forEach(p=>{
+        if(Math.hypot(b.x-p.x, b.y-p.y) < POCKET_R*0.85){
+          b.potted = true; b.vx=0; b.vy=0;
+          if(shotInFlight) potsThisShot.push(b);
+        }
+      });
+    });
+    // Safety net: if a shot has been "in flight" for way longer than any real
+    // shot could take (balls stuck jittering against a cushion/pocket edge),
+    // force everything to rest so the turn can resolve and play can continue.
+    if(shotInFlight && shotWatchdogAt && performance.now() - shotWatchdogAt > 8000){
+      balls.forEach(b=>{ b.vx = 0; b.vy = 0; });
+    }
+    if(shotInFlight && allStopped()){ shotInFlight = false; resolveShot(); }
+  }
+
+  function respot(kind){
+    const s = spots[kind];
+    let x=s.x, y=s.y;
+    while(balls.some(b=>!b.potted && b.kind!==kind && Math.hypot(b.x-x,b.y-y) < BALL_R*2.1)){ y += BALL_R*2.2; }
+    return {x,y};
+  }
+  function foul(reason, points){
+    const other = 1-currentPlayer;
+    scores[other] += points;
+    currentBreak = 0;
+    setMsg('Foul: ' + reason + ' — +' + points + ' to ' + names[other], 'bad');
+    sfxFoul();
+    switchTurn();
+  }
+  function switchTurn(){
+    currentPlayer = 1-currentPlayer; currentBreak = 0; updateHud();
+    if(!frameOver){
+      const target = phase==='reds' ? (expectRed?'a RED':'any COLOUR') : COLOR_ORDER[colorSequenceIdx];
+      setMsg(names[currentPlayer] + '’s turn — aim for ' + (typeof target==='string' && phase==='colors' ? target.toUpperCase() : target), 'info');
+      maybeScheduleAI();
+    }
+  }
+  function resolveShot(){
+    // Look the cue ball up directly (not via getCue(), which filters out
+    // potted balls) — if it was just potted this shot, getCue() would return
+    // nothing here and the very next line would crash trying to un-pot it,
+    // freezing the whole render loop the instant the white goes down.
+    const cue = balls.find(b=>b.cue);
+    const cuePotted = potsThisShot.some(b=>b.cue);
+    const foulPoints = () => {
+      if(phase==='reds') return expectRed ? 4 : Math.max(4, COLOR_VALUE[firstHitThisShot]||4);
+      const c = COLOR_ORDER[colorSequenceIdx];
+      return Math.max(4, COLOR_VALUE[c]||4);
+    };
+    if(cuePotted){
+      cue.potted = false; cue.x = W*0.25; cue.y = H/2;
+      ballInHand = true;
+      foul('cue ball potted', foulPoints());
+      setMsg('Cue ball potted — place it in the D before your next shot', 'bad');
+      updateHud(); return;
+    }
+    if(firstHitThisShot === null){ foul('no ball struck', 4); updateHud(); return; }
+    if(phase==='reds'){
+      const needRed = expectRed;
+      const hitOk = needRed ? firstHitThisShot==='red' : firstHitThisShot!=='red';
+      if(!hitOk){ foul('wrong ball hit first', foulPoints()); updateHud(); return; }
+    } else {
+      const needed = COLOR_ORDER[colorSequenceIdx];
+      if(firstHitThisShot !== needed){ foul('wrong ball hit first', foulPoints()); updateHud(); return; }
+    }
+    const nonCuePots = potsThisShot.filter(b=>!b.cue);
+    let gained = 0, legalPot = false, illegalPot = false;
+    nonCuePots.forEach(b=>{
+      if(phase==='reds'){
+        if(expectRed && b.kind==='red'){ gained += 1; legalPot = true; }
+        else if(!expectRed && b.kind!=='red'){ gained += COLOR_VALUE[b.kind]; legalPot = true; }
+        else illegalPot = true;
+      } else {
+        const needed = COLOR_ORDER[colorSequenceIdx];
+        if(b.kind===needed){ gained += COLOR_VALUE[b.kind]; legalPot = true; }
+        else illegalPot = true;
+      }
+    });
+    if(illegalPot){
+      let val = 4;
+      nonCuePots.forEach(b=>{ val = Math.max(val, COLOR_VALUE[b.kind]||4); });
+      nonCuePots.forEach(b=>{ if(b.kind!=='red'){ const s=respot(b.kind); b.x=s.x; b.y=s.y; b.potted=false; } });
+      foul('potted out of sequence', val);
+      updateHud(); return;
+    }
+    if(legalPot){
+      scores[currentPlayer] += gained;
+      currentBreak += gained;
+      save.stats.potted += nonCuePots.length;
+      if(currentBreak > save.stats.bestBreak) save.stats.bestBreak = currentBreak;
+      addRewards(gained * 2, 0, gained * 2);
+      sfxPot();
+      setMsg('+' + gained + ' for ' + names[currentPlayer] + ' — break of ' + currentBreak, 'ok');
+      if(phase==='reds'){
+        const anyRedPotted = nonCuePots.some(b=>b.kind==='red');
+        if(anyRedPotted){ expectRed = false; }
+        else {
+          nonCuePots.forEach(b=>{ const s=respot(b.kind); b.x=s.x; b.y=s.y; b.potted=false; });
+          expectRed = true;
+        }
+        if(redsRemaining() === 0){ phase = 'colors'; colorSequenceIdx = 0; expectRed = true; }
+      } else {
+        colorSequenceIdx += 1;
+        if(colorSequenceIdx >= COLOR_ORDER.length){ endFrame(); return; }
+      }
+      updateHud();
+      maybeScheduleAI(); // same player continues on a legal pot — keep the computer moving
+      return;
+    }
+    setMsg('No ball potted', 'info');
+    currentBreak = 0;
+    switchTurn();
+  }
+  function endFrame(){
+    frameOver = true; updateHud();
+    const s1 = scores[0], s2 = scores[1];
+    let title, line, p1Won, isDraw = false;
+    if(mode===2){
+      if(s1===s2){ title='Frame Drawn'; line=names[0]+' and '+names[1]+' tied at '+s1+'.'; p1Won=false; isDraw=true; }
+      else{
+        const winner = s1>s2 ? names[0] : names[1];
+        title = winner + ' Wins the Frame';
+        line = names[0]+': '+s1+'  —  '+names[1]+': '+s2;
+        p1Won = s1 > s2;
+      }
+    } else {
+      // Single-player vs House (computer): compare scores to decide Win/Defeat.
+      p1Won = s1 > s2;
+      title = p1Won ? 'YOU WIN' : 'DEFEAT';
+      line = names[0] + ': ' + s1 + '  —  ' + names[1] + ': ' + s2;
+    }
+    save.stats.played += 1;
+    if(p1Won) save.stats.won += 1;
+    const rewardCoins = p1Won ? 80 : 30;
+    addRewards(rewardCoins, p1Won ? 2 : 0, rewardCoins);
+    sfxClaim();
+    endTitle.textContent = title;
+    endLine.textContent = line + '  ·  +' + rewardCoins + ' 🪙' + (p1Won ? ' +2 💎' : '');
+
+    endOverlay.classList.remove('result-win','result-lose');
+    const starEls = endStars.querySelectorAll('.star');
+    starEls.forEach(s=>s.classList.remove('filled'));
+    if(isDraw){
+      endBadge.textContent = '🤝';
+      endStars.style.display = 'none';
+    } else if(p1Won){
+      endOverlay.classList.add('result-win');
+      endBadge.textContent = '🏆';
+      endStars.style.display = 'flex';
+      const margin = s1 - s2;
+      const starCount = margin >= 30 ? 3 : margin >= 12 ? 2 : 1;
+      for(let i=0;i<starCount;i++) starEls[i].classList.add('filled');
+    } else {
+      endOverlay.classList.add('result-lose');
+      endBadge.textContent = '💔';
+      endStars.style.display = 'none';
+    }
+    endOverlay.hidden = false;
+  }
+
+  resumeBtn.addEventListener('click', ()=>{ paused = false; pauseOverlay.hidden = true; });
+  quitBtn.addEventListener('click', ()=>{
+    paused = false; pauseOverlay.hidden = true;
+    showScreen(lobbyScreen);
+    document.body.classList.remove('in-game');
+  });
+  rulesSideBtn.addEventListener('click', ()=>{ rulesOverlay.hidden = false; });
+  closeRulesBtn.addEventListener('click', ()=>{ rulesOverlay.hidden = true; });
+  settingsBtn.addEventListener('click', ()=>{ paused = true; pauseOverlay.hidden = false; });
+  homeBtn.addEventListener('click', ()=>{
+    showScreen(lobbyScreen);
+    document.body.classList.remove('in-game');
+  });
+  restartSideBtn.addEventListener('click', ()=>{ rackBalls(); });
+  playAgainBtn.addEventListener('click', ()=>{ endOverlay.hidden = true; rackBalls(); });
+  menuBtn.addEventListener('click', ()=>{
+    endOverlay.hidden = true;
+    showScreen(lobbyScreen);
+    document.body.classList.remove('in-game');
+  });
+
+  let loopStarted = false;
+  function startLoop(){
+    loopStarted = true;
+    function loop(){ step(); drawTable(); drawBalls(); drawBallInHandHint(); drawAim(); requestAnimationFrame(loop); }
+    loop();
+  }
+
+  try{
+    if(window.claude && window.claude.hot){
+      window.claude.hot.snapshot(()=>({ balls, scores, currentPlayer, currentBreak, phase, colorSequenceIdx, expectRed, mode, difficulty, names }));
+    }
+  }catch(e){}
+
+  // Always land on the lobby on a fresh load, no matter what — this guards
+  // against any stray state (a resumed WebView instance, a leftover DOM
+  // mutation) ever leaving the app parked on the in-game screen.
+  document.body.classList.remove('in-game');
+  showScreen(lobbyScreen);
+})();
+</script>
